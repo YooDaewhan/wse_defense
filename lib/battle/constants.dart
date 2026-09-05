@@ -27,3 +27,9 @@ int roundedDiv(int n, int d) => (n + d ~/ 2) ~/ d;
 const int naturalKbDistance = 90; // 논리 단위
 const int naturalKbTicks = 12; // 0.4초
 const int forcedKbImmuneTicks = 30; // 강제 넉백 재적용 방지 1초
+
+/// 03_BATTLE_ENGINE.md §8 기도력·필살기 상수.
+const int unitCap = 40; // 편당 최대 생존 유닛 수
+const int ultGaugeMax = 1800; // 60초 x 30틱
+const int ultGaugePerTick = 1;
+const int ultMaxStock = 1;

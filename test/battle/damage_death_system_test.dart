@@ -23,6 +23,7 @@ BattleWorld _newWorld() => BattleWorld(
       timeLimitSec: 300,
     ),
     allyBaseHp: 10000,
+    startingPrayerPower: 0,
   ),
   rngSeed: 1,
   datapack: const Datapack(characters: {}, enemies: {}, stages: {}),

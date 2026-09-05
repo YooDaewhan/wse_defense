@@ -1,13 +1,38 @@
 import '../defs/stage_def.dart';
+import '../defs/unit_def.dart';
 
-/// `BattleWorld`를 세우는 데 필요한 최소 구성. 편성/시작 기도력 등은
-/// 아직 소비하는 시스템이 없어 필요해질 때(T-12 등) 추가한다.
+/// `BattleWorld`를 세우는 데 필요한 최소 구성.
 ///
-/// `allyBaseHp`(모닥불 체력)는 stage가 아니라 계정의 캠프 성장치에서
-/// 오므로(growth.json, T-30) `StageDef`에 넣지 않고 여기서 따로 받는다.
+/// `allyBaseHp`(모닥불 체력)와 집중력(focus*) 수치는 stage가 아니라 계정의
+/// 캠프/집중력 성장치에서 오므로(growth.json, T-30) `StageDef`에 넣지 않고
+/// 여기서 따로 받는다. 기본값은 growth.json §9의 집중력 Lv1 keyframe
+/// (regenPerSec 18, cap 1000, startAmount 200)과 focusBoost 표를 그대로 옮긴
+/// 것 — T-30이 실제 계정 레벨로 이 값들을 채워 넣기 전까지의 자리 표시자.
 class BattleConfig {
-  const BattleConfig({required this.stage, required this.allyBaseHp});
+  const BattleConfig({
+    required this.stage,
+    required this.allyBaseHp,
+    this.formation = const [],
+    this.focusBaseRegen = 18,
+    this.focusBaseCap = 1000,
+    this.startingPrayerPower = 200,
+    this.focusBoostBonus = const [0, 7, 14],
+    this.focusBoostCap = const [0, 300, 600],
+    this.focusBoostCost = const [0, 150, 250],
+  });
 
   final StageDef stage;
   final int allyBaseHp;
+
+  /// 소환 가능한 편성 슬롯의 정적 정의(순서 = 슬롯 index).
+  final List<UnitDef> formation;
+
+  final int focusBaseRegen; // 초당 회복(집중력 레벨 기본)
+  final int focusBaseCap;
+  final int startingPrayerPower;
+
+  /// index = focusBoostStage(0=미사용).
+  final List<int> focusBoostBonus;
+  final List<int> focusBoostCap;
+  final List<int> focusBoostCost;
 }

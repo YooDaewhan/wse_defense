@@ -1,12 +1,16 @@
 import '../constants.dart';
 import '../defs/datapack.dart';
+import '../defs/unit_def.dart';
 import '../entity/base_entity.dart';
+import '../entity/battle_entity.dart';
 import '../entity/entity_store.dart';
 import '../rng/deterministic_rng.dart';
 import '../system/battle_system.dart';
 import '../system/pending_damage.dart';
 import '../tag/tag_query.dart';
 import 'battle_config.dart';
+import 'battle_input.dart';
+import 'formation_slot.dart';
 
 enum BattlePhase { ready, running, finished }
 
@@ -14,20 +18,19 @@ enum BattleOutcome { allyWin, enemyWin, draw, timeout }
 
 /// 03_BATTLE_ENGINE.md §1 최상위 인터페이스의 뼈대.
 ///
-/// 아직 스킵한 것: `prayerPowerFrac`/`ultimateGauge`(T-12 ResourceSystem이
-/// regen을 붙일 때 같이 추가), `weather`(T-45), `events`/`inputs`(해당
-/// 시스템들이 생기기 전까지 쓸 데가 없음), `snapshot()`(T-22),
-/// `serialize()/deserialize()`(T-20). 지금 만들어봐야 아무도 채우지 않는
-/// 필드라 해당 티켓에서 추가한다.
-///
-/// `prayerPower`는 T-10 DeathSystem의 처치 보상을 위해 여기서 먼저 넣었다.
+/// 아직 스킵한 것: `weather`(T-45), `events`(태울 시스템이 없어 아직 필요
+/// 없음), `snapshot()`(T-22), `serialize()/deserialize()`(T-20). 지금
+/// 만들어봐야 아무도 채우지 않는 필드라 해당 티켓에서 추가한다.
 class BattleWorld {
   BattleWorld({
     required this.config,
     required int rngSeed,
     required this.datapack,
     this.systems = const [],
-  }) : rng = DeterministicRng(rngSeed) {
+  }) : rng = DeterministicRng(rngSeed),
+       formation = [for (final def in config.formation) FormationSlot(def)],
+       prayerPower = config.startingPrayerPower,
+       ultimateGauge = ultGaugeMax ~/ 2 {
     // 좌표는 고정소수점(POS_SCALE)로 저장한다 (01_ARCHITECTURE.md §3.1).
     allyBase = BaseEntity(
       side: Side.ally,
@@ -54,11 +57,49 @@ class BattleWorld {
   final EntityStore entities = EntityStore();
   late final BaseEntity allyBase; // 모닥불
   late final BaseEntity enemyBase; // 둥지
+  int _nextEntityId = 0;
 
-  int prayerPower = 0; // 현재 기도력 (밀리 단위 아님, 정수)
+  int prayerPower; // 현재 기도력 (밀리 단위 아님, 정수)
+  int prayerPowerFrac = 0; // 초당 회복의 틱 나머지 누적
+  int focusBoostStage = 0;
+  int ultimateGauge; // 0..ultGaugeMax
+  int ultimateStock = 0;
+  int weatherRegenPct = pctScale; // WeatherSystem(T-45) 전까지 100% 고정
+
+  final List<FormationSlot> formation;
 
   /// 이번 틱에 큐잉된 피해. DamageSystem이 매 틱 소비 후 비운다.
   final List<PendingDamage> pendingDamage = [];
+
+  final InputQueue inputs = InputQueue();
+  void enqueueInput(BattleInput input) => inputs.add(tick, input);
+
+  int get currentPrayerCap =>
+      config.focusBaseCap + config.focusBoostCap[focusBoostStage];
+
+  int get allyAliveCount => _aliveCount(Side.ally);
+  int get enemyAliveCount => _aliveCount(Side.enemy);
+
+  int _aliveCount(Side side) {
+    var count = 0;
+    for (final e in entities.ordered) {
+      if (e.side == side && e.isAlive) count++;
+    }
+    return count;
+  }
+
+  /// 새 엔티티를 만들어 등록하고 돌려준다. id는 스폰 순서대로 단조 증가.
+  BattleEntity spawnEntity(UnitDef def, Side side, int x) {
+    final e = BattleEntity(
+      id: _nextEntityId++,
+      side: side,
+      def: def,
+      spawnTick: tick,
+      x: x,
+    );
+    entities.add(e);
+    return e;
+  }
 
   /// 전장 경계 (고정소수점). 양쪽 진영 모두 같은 필드 안에서 움직이므로
   /// side별로 달라질 이유가 아직 없다 — 필요해지면(스테이지별 제한 등) 여기서 분기.
