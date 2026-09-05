@@ -2,6 +2,7 @@ import '../defs/stage_def.dart';
 import '../defs/unit_def.dart';
 import '../tag/tag_effect_def.dart';
 import '../tag/tag_registry.dart';
+import '../tag/tag_relation_rule.dart';
 
 /// `BattleWorld`를 세우는 데 필요한 최소 구성.
 ///
@@ -23,6 +24,7 @@ class BattleConfig {
     this.focusBoostCost = const [0, 150, 250],
     this.tagRegistry,
     this.tagEffects = const [],
+    this.relationRules = const [],
   });
 
   final StageDef stage;
@@ -35,6 +37,7 @@ class BattleConfig {
   /// T-05 스코프라 여기선 강제하지 않음 — 태그를 안 쓰는 테스트는 그대로 둔다).
   final TagRegistry? tagRegistry;
   final List<TagEffectDef> tagEffects;
+  final List<TagRelationRule> relationRules;
 
   final int focusBaseRegen; // 초당 회복(집중력 레벨 기본)
   final int focusBaseCap;

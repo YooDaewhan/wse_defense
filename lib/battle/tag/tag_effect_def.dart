@@ -152,26 +152,6 @@ class TagEffectDef {
 
   static TagQuery? _targetFromJson(Object? raw, TagRegistry registry) {
     if (raw == null || raw == 'SELF') return null;
-    final map = raw as Map<String, Object?>;
-    return TagQuery(
-      side: switch (map['side'] as String? ?? 'SAME') {
-        'SAME' => QuerySide.same,
-        'ENEMY' => QuerySide.enemy,
-        'ANY' => QuerySide.any,
-        _ => QuerySide.same,
-      },
-      hasTags: [
-        for (final t in (map['hasTags'] as List<Object?>? ?? const []))
-          registry.indexOf(t as String),
-      ],
-      anyTags: [
-        for (final t in (map['anyTags'] as List<Object?>? ?? const []))
-          registry.indexOf(t as String),
-      ],
-      notTags: [
-        for (final t in (map['notTags'] as List<Object?>? ?? const []))
-          registry.indexOf(t as String),
-      ],
-    );
+    return TagQuery.fromJson(raw as Map<String, Object?>, registry);
   }
 }

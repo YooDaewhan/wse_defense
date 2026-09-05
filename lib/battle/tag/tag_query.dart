@@ -1,3 +1,5 @@
+import 'tag_registry.dart';
+
 /// 02_TAG_SYSTEM.md §3.4 TagQuery.
 ///
 /// `BattleEntity`/`BattleWorld`는 T-07에서 정의된다. T-06은 그보다 먼저
@@ -54,6 +56,53 @@ class TagQuery {
   /// 0 = 무제한.
   final int limit;
   final QuerySort sort;
+
+  /// §3.4 스키마 전체를 [registry]로 태그 문자열을 인덱스로 바꿔가며 파싱한다.
+  /// `minTagLevel`은 JSON에선 객체({"TAG_X": 2})지만, 각 항목이 서로 다른
+  /// 키(태그)를 가리켜 독립적으로 평가되므로 Map을 순회해도 결과가 순서에
+  /// 좌우되지 않는다 — 01_ARCHITECTURE.md §3.2가 걱정하는 것과는 다른 경우.
+  factory TagQuery.fromJson(Map<String, Object?> json, TagRegistry registry) {
+    int idx(String id) => registry.indexOf(id);
+    return TagQuery(
+      side: switch (json['side'] as String? ?? 'SAME') {
+        'SAME' => QuerySide.same,
+        'ENEMY' => QuerySide.enemy,
+        'ANY' => QuerySide.any,
+        _ => QuerySide.same,
+      },
+      hasTags: [
+        for (final t in (json['hasTags'] as List<Object?>? ?? const []))
+          idx(t as String),
+      ],
+      anyTags: [
+        for (final t in (json['anyTags'] as List<Object?>? ?? const []))
+          idx(t as String),
+      ],
+      notTags: [
+        for (final t in (json['notTags'] as List<Object?>? ?? const []))
+          idx(t as String),
+      ],
+      minTagLevel: [
+        for (final e
+            in (json['minTagLevel'] as Map<String, Object?>? ?? const {})
+                .entries)
+          (idx(e.key), e.value as int),
+      ],
+      roles: [
+        for (final r in (json['roles'] as List<Object?>? ?? const []))
+          r as String,
+      ],
+      aliveOnly: json['aliveOnly'] as bool? ?? true,
+      excludeKnockback: json['excludeKnockback'] as bool? ?? false,
+      limit: json['limit'] as int? ?? 0,
+      sort: switch (json['sort'] as String? ?? 'ENTITY_ID') {
+        'NEAREST' => QuerySort.nearest,
+        'FARTHEST' => QuerySort.farthest,
+        'LOWEST_HP' => QuerySort.lowestHp,
+        _ => QuerySort.entityId,
+      },
+    );
+  }
 
   bool matches(TagQueryTarget e, TagQueryTarget owner) {
     if (aliveOnly && !e.isAlive) return false;

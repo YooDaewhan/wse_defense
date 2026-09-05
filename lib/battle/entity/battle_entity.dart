@@ -4,6 +4,7 @@ import '../stat/stat_key.dart';
 import '../stat/stat_sheet.dart';
 import '../tag/tag_contribution.dart';
 import '../tag/tag_query.dart';
+import '../tag/tag_relation_state.dart';
 import '../tag/tag_stack.dart';
 import 'entity_state.dart';
 
@@ -70,6 +71,11 @@ class BattleEntity implements TagQueryTarget {
   bool knockbackIsForced = false; // 종료 시 forcedKbImmuneUntilTick 갱신 여부
   int forcedKbImmuneUntilTick = 0;
   int consumedHpThresholds = 0; // 소비한 자연 넉백 임계 수 (회복해도 복구 안 됨)
+
+  /// 관계 규칙(T-16) id -> 상태. 여기 자체를 순회하지 않고 rule.id로만
+  /// 조회하므로(RelationSystem이 rules 리스트 순서로 접근) Map 순회 금지
+  /// 규칙에 저촉되지 않는다.
+  final Map<String, RelationState> relationStates = {};
 
   // 파생
   @override

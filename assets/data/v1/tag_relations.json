@@ -1,0 +1,59 @@
+{
+  "rules": [
+    {
+      "id": "TRL_COWARD_SLOWED_BY_BRAVE_AHEAD",
+      "nameKey": "rel.coward.slow",
+      "subject": { "side": "SAME", "hasTags": ["TAG_TRAIT_COWARD"], "aliveOnly": true },
+      "other": { "side": "SAME", "hasTags": ["TAG_TRAIT_BRAVE"], "aliveOnly": true },
+      "relation": "OTHER_IS_AHEAD",
+      "rangeMin": 0,
+      "rangeMax": 400,
+      "requireCount": 1,
+      "scaleByOtherCount": false,
+      "scaleBySubjectTagLevel": true,
+      "mods": [{ "stat": "MOVE_SPEED", "op": "PCT_ADD", "value": -25000 }],
+      "minActiveTicks": 30,
+      "offDelayTicks": 12,
+      "vfxKey": "rel_coward_sweat"
+    },
+    {
+      "id": "TRL_BRAVE_BOOSTED_BY_COWARD_BEHIND",
+      "nameKey": "rel.brave.boost",
+      "subject": { "side": "SAME", "hasTags": ["TAG_TRAIT_BRAVE"], "aliveOnly": true },
+      "other": { "side": "SAME", "hasTags": ["TAG_TRAIT_COWARD"], "aliveOnly": true },
+      "relation": "OTHER_IS_BEHIND",
+      "rangeMax": 400,
+      "requireCount": 1,
+      "scaleByOtherCount": true,
+      "maxScale": 3,
+      "mods": [{ "stat": "MOVE_SPEED", "op": "PCT_ADD", "value": 12000 }],
+      "minActiveTicks": 30,
+      "offDelayTicks": 12,
+      "vfxKey": "rel_brave_flame"
+    },
+    {
+      "id": "TRL_HERD_ADJACENT",
+      "nameKey": "rel.herd.pack",
+      "subject": { "side": "SAME", "hasTags": ["TAG_TRAIT_HERD"], "aliveOnly": true },
+      "other": { "side": "SAME", "hasTags": ["TAG_TRAIT_HERD"], "aliveOnly": true },
+      "relation": "OTHER_IS_ADJACENT",
+      "rangeMax": 250,
+      "requireCount": 1,
+      "mods": [{ "stat": "DEF", "op": "PCT_ADD", "value": 3000 }],
+      "minActiveTicks": 30,
+      "offDelayTicks": 12
+    },
+    {
+      "id": "TRL_LONE_VANGUARD",
+      "nameKey": "rel.lone.vanguard",
+      "subject": { "side": "SAME", "hasTags": ["TAG_TRAIT_FIERCE"], "aliveOnly": true },
+      "other": { "side": "SAME", "aliveOnly": true },
+      "relation": "NO_OTHER_AHEAD",
+      "rangeMax": 0,
+      "requireCount": 0,
+      "mods": [{ "stat": "ATK", "op": "PCT_ADD", "value": 15000 }],
+      "minActiveTicks": 30,
+      "offDelayTicks": 12
+    }
+  ]
+}
