@@ -1,3 +1,4 @@
+import '../constants.dart';
 import '../defs/datapack.dart';
 import '../entity/base_entity.dart';
 import '../entity/entity_store.dart';
@@ -23,14 +24,15 @@ class BattleWorld {
     required this.datapack,
     this.systems = const [],
   }) : rng = DeterministicRng(rngSeed) {
+    // 좌표는 고정소수점(POS_SCALE)로 저장한다 (01_ARCHITECTURE.md §3.1).
     allyBase = BaseEntity(
       side: Side.ally,
-      x: config.stage.allyBaseX,
+      x: config.stage.allyBaseX * posScale,
       maxHp: config.allyBaseHp,
     );
     enemyBase = BaseEntity(
       side: Side.enemy,
-      x: config.stage.enemyBaseX,
+      x: config.stage.enemyBaseX * posScale,
       maxHp: config.stage.enemyBaseHp,
     );
   }
@@ -48,6 +50,11 @@ class BattleWorld {
   final EntityStore entities = EntityStore();
   late final BaseEntity allyBase; // 모닥불
   late final BaseEntity enemyBase; // 둥지
+
+  /// 전장 경계 (고정소수점). 양쪽 진영 모두 같은 필드 안에서 움직이므로
+  /// side별로 달라질 이유가 아직 없다 — 필요해지면(스테이지별 제한 등) 여기서 분기.
+  int minX(Side side) => 0;
+  int maxX(Side side) => config.stage.fieldLength * posScale;
 
   /// 정확히 1틱 진행. 외부에서 이것만 호출한다.
   void step() {
@@ -67,7 +74,7 @@ class BattleWorld {
     h = _fnvMix(h, outcome?.index ?? -1);
     h = _fnvMix(h, allyBase.hp);
     h = _fnvMix(h, enemyBase.hp);
-    for (final e in entities.all) {
+    for (final e in entities.ordered) {
       h = _fnvMix(h, e.id);
       h = _fnvMix(h, e.x);
       h = _fnvMix(h, e.hp);

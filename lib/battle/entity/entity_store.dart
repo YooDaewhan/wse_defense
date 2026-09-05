@@ -21,8 +21,8 @@ class EntityStore {
     if (entity != null) _sorted.remove(entity);
   }
 
-  /// 항상 entityId 오름차순.
-  Iterable<BattleEntity> get all => _sorted;
+  /// 항상 entityId 오름차순 (03_BATTLE_ENGINE.md의 `w.entities.ordered`).
+  Iterable<BattleEntity> get ordered => _sorted;
 
   int get length => _sorted.length;
 }

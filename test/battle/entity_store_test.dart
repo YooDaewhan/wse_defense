@@ -32,7 +32,7 @@ void main() {
       ..add(_entity(2))
       ..add(_entity(3));
 
-    expect(store.all.map((e) => e.id), [1, 2, 3]);
+    expect(store.ordered.map((e) => e.id), [1, 2, 3]);
     expect(store.length, 3);
   });
 
@@ -47,7 +47,7 @@ void main() {
     store.removeById(2);
 
     expect(store.byId(2), isNull);
-    expect(store.all.map((e) => e.id), [1, 3]);
+    expect(store.ordered.map((e) => e.id), [1, 3]);
     expect(store.length, 2);
   });
 }

@@ -54,6 +54,10 @@ class BattleEntity implements TagQueryTarget {
   int? lockedTargetId; // 단일 공격 표적 고정
   int completedAttacks = 0; // N회 공격 트리거용
 
+  // TargetSystem(T-08)이 매 틱 갱신, MovementSystem/AttackSystem(T-09)이 읽음.
+  int? currentTargetId;
+  bool currentTargetInRange = false;
+
   // 넉백
   int knockbackTicksLeft = 0;
   int knockbackVelocity = 0; // 틱당 이동량(고정소수점), 부호는 후퇴 방향
