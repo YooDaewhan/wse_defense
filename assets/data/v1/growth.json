@@ -1,0 +1,29 @@
+{
+  "focus": {
+    "keyframes": [
+      { "level": 1, "regenPerSec": 18, "cap": 1000, "startAmount": 200 },
+      { "level": 10, "regenPerSec": 31, "cap": 1600, "startAmount": 250 },
+      { "level": 20, "regenPerSec": 45, "cap": 2200, "startAmount": 300 }
+    ],
+    "interpolate": "LINEAR_INT",
+    "goldCostFormula": { "base": 500, "growth": 1.18 }
+  },
+  "camp": {
+    "keyframes": [
+      { "level": 1, "hp": 10000 },
+      { "level": 10, "hp": 28000 },
+      { "level": 20, "hp": 50000 }
+    ],
+    "interpolate": "LINEAR_INT",
+    "goldCostFormula": { "base": 400, "growth": 1.20 }
+  },
+  "focusBoost": [
+    { "stage": 0, "regenBonus": 0, "capBonus": 0, "cost": 0 },
+    { "stage": 1, "regenBonus": 7, "capBonus": 300, "cost": 150 },
+    { "stage": 2, "regenBonus": 14, "capBonus": 600, "cost": 250 }
+  ],
+  "bond": {
+    "maxLevel": 120,
+    "goldCostFormula": { "base": 200, "growth": 1.12 }
+  }
+}
