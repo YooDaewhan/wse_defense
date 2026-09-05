@@ -3,14 +3,16 @@ import '../entity/entity_state.dart';
 import '../stat/stat_key.dart';
 import '../world/battle_world.dart';
 import 'battle_system.dart';
+import 'damage_system.dart';
+import 'pending_damage.dart';
 import 'target_system.dart';
 
 /// 03_BATTLE_ENGINE.md §4: 공격 상태머신.
 /// cooldown 대기 -> [attackWindup](A틱) -> ★판정 -> [attackRecover](R틱) -> idle.
 ///
 /// `w.events`/`SkillTriggerRunner`는 아직 없어(이벤트 버스, T-18) 호출을
-/// 생략한다. 실제 피해 적용도 아직 없다(DamageSystem, T-10) — 이번 판정에서
-/// 맞은 대상 id만 [BattleEntity.lastHitTargetIds]에 기록해 관측 가능하게 해둔다.
+/// 생략한다. 판정에서 맞은 대상 id는 [BattleEntity.lastHitTargetIds]에도
+/// 남겨 관측 가능하게 해둔다(테스트용).
 class AttackSystem implements BattleSystem {
   @override
   void execute(BattleWorld w) {
@@ -70,9 +72,19 @@ class AttackSystem implements BattleSystem {
   }
 
   void _resolveHit(BattleWorld w, BattleEntity e) {
-    e.lastHitTargetIds = e.def.base.attackMode == 'AOE'
+    final hits = e.def.base.attackMode == 'AOE'
         ? _selectAoeTargets(w, e)
         : _resolveSingleTarget(w, e);
+    e.lastHitTargetIds = hits;
+
+    for (final targetId in hits) {
+      final target = w.entities.byId(targetId);
+      if (target == null) continue;
+      final amount = computeDamage(w, e, target, e.stats.get(StatKey.atk));
+      w.pendingDamage.add(
+        PendingDamage(targetId: targetId, sourceId: e.id, amount: amount),
+      );
+    }
   }
 
   List<int> _resolveSingleTarget(BattleWorld w, BattleEntity e) {

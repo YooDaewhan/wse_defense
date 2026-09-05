@@ -4,6 +4,7 @@ import '../entity/base_entity.dart';
 import '../entity/entity_store.dart';
 import '../rng/deterministic_rng.dart';
 import '../system/battle_system.dart';
+import '../system/pending_damage.dart';
 import '../tag/tag_query.dart';
 import 'battle_config.dart';
 
@@ -11,12 +12,15 @@ enum BattlePhase { ready, running, finished }
 
 enum BattleOutcome { allyWin, enemyWin, draw, timeout }
 
-/// 03_BATTLE_ENGINE.md §1 최상위 인터페이스의 뼈대(T-07 스코프).
+/// 03_BATTLE_ENGINE.md §1 최상위 인터페이스의 뼈대.
 ///
-/// 아직 스킵한 것: `prayerPower`/`ultimateGauge`(T-12), `weather`(T-45),
-/// `events`/`inputs`(해당 시스템들이 생기기 전까지 쓸 데가 없음),
-/// `snapshot()`(T-22), `serialize()/deserialize()`(T-20). 지금 만들어봐야
-/// 아무도 채우지 않는 필드라 해당 티켓에서 추가한다.
+/// 아직 스킵한 것: `prayerPowerFrac`/`ultimateGauge`(T-12 ResourceSystem이
+/// regen을 붙일 때 같이 추가), `weather`(T-45), `events`/`inputs`(해당
+/// 시스템들이 생기기 전까지 쓸 데가 없음), `snapshot()`(T-22),
+/// `serialize()/deserialize()`(T-20). 지금 만들어봐야 아무도 채우지 않는
+/// 필드라 해당 티켓에서 추가한다.
+///
+/// `prayerPower`는 T-10 DeathSystem의 처치 보상을 위해 여기서 먼저 넣었다.
 class BattleWorld {
   BattleWorld({
     required this.config,
@@ -50,6 +54,11 @@ class BattleWorld {
   final EntityStore entities = EntityStore();
   late final BaseEntity allyBase; // 모닥불
   late final BaseEntity enemyBase; // 둥지
+
+  int prayerPower = 0; // 현재 기도력 (밀리 단위 아님, 정수)
+
+  /// 이번 틱에 큐잉된 피해. DamageSystem이 매 틱 소비 후 비운다.
+  final List<PendingDamage> pendingDamage = [];
 
   /// 전장 경계 (고정소수점). 양쪽 진영 모두 같은 필드 안에서 움직이므로
   /// side별로 달라질 이유가 아직 없다 — 필요해지면(스테이지별 제한 등) 여기서 분기.
