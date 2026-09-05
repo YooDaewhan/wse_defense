@@ -7,7 +7,11 @@ import '../entity/entity_store.dart';
 import '../rng/deterministic_rng.dart';
 import '../system/battle_system.dart';
 import '../system/pending_damage.dart';
+import '../tag/tag_contribution.dart';
+import '../tag/tag_effect_resolver.dart';
 import '../tag/tag_query.dart';
+import '../tag/tag_registry.dart';
+import '../tag/tag_stack.dart';
 import 'battle_config.dart';
 import 'battle_input.dart';
 import 'formation_slot.dart';
@@ -37,7 +41,8 @@ class BattleWorld {
          for (final b in config.stage.bossTriggers) BossTriggerRuntime(b),
        ],
        prayerPower = config.startingPrayerPower,
-       ultimateGauge = ultGaugeMax ~/ 2 {
+       ultimateGauge = ultGaugeMax ~/ 2,
+       tagRegistry = config.tagRegistry ?? TagRegistry(const []) {
     // 좌표는 고정소수점(POS_SCALE)로 저장한다 (01_ARCHITECTURE.md §3.1).
     allyBase = BaseEntity(
       side: Side.ally,
@@ -49,6 +54,7 @@ class BattleWorld {
       x: config.stage.enemyBaseX * posScale,
       maxHp: config.stage.enemyBaseHp,
     );
+    tagEffectResolver.resolveFormation(this); // 02_TAG_SYSTEM.md §8: 전투 시작 시 1회
   }
 
   final BattleConfig config;
@@ -77,6 +83,19 @@ class BattleWorld {
   final List<WaveRuntimeState> waveStates;
   final List<BossTriggerRuntime> bossTriggers;
 
+  final TagRegistry tagRegistry;
+  late final TagEffectResolver tagEffectResolver = TagEffectResolver(
+    tagRegistry,
+    config.tagEffects,
+  );
+
+  /// §2.2: 전투 시작 시 1회 계산되고 이후 절대 변하지 않는다.
+  TagStack formationTagLevel = TagStack();
+
+  /// §2: 2초마다 재계산되는, 그 순간 살아있는 같은 편 유닛 기준 태그 레벨.
+  TagStack allyFieldTagLevel = TagStack();
+  TagStack enemyFieldTagLevel = TagStack();
+
   /// 이번 틱에 큐잉된 피해. DamageSystem이 매 틱 소비 후 비운다.
   final List<PendingDamage> pendingDamage = [];
 
@@ -98,6 +117,8 @@ class BattleWorld {
   }
 
   /// 새 엔티티를 만들어 등록하고 돌려준다. id는 스폰 순서대로 단조 증가.
+  /// intrinsicTags를 태그 스택으로 구성하고 태그 효과까지 적용한다
+  /// (§8 resolveUnitOnSpawn). 장비 grantTags는 아직 없다(T-39/T-44 스코프).
   BattleEntity spawnEntity(UnitDef def, Side side, int x) {
     final e = BattleEntity(
       id: _nextEntityId++,
@@ -106,6 +127,19 @@ class BattleWorld {
       spawnTick: tick,
       x: x,
     );
+    for (final entry in def.intrinsicTags.entries) {
+      final idx = tagRegistry.indexOf(entry.key);
+      if (idx == -1) continue; // 존재하지 않는 태그 참조 -> 무시
+      e.tagContribs.add(
+        TagContribution(
+          tagIndex: idx,
+          amount: entry.value,
+          kind: TagSourceKind.intrinsic,
+          sourceId: def.id,
+        ),
+      );
+    }
+    tagEffectResolver.resolveUnitOnSpawn(e, this);
     entities.add(e);
     return e;
   }

@@ -1,0 +1,64 @@
+{
+  "effects": [
+    {
+      "id": "TEF_CHUBBY",
+      "tag": "TAG_BUILD_CHUBBY",
+      "scope": "UNIT",
+      "target": "SELF",
+      "mode": "PER_LEVEL",
+      "perLevel": [{ "stat": "MAX_HP", "op": "PCT_ADD", "value": 5000 }],
+      "levelCapForEffect": 5,
+      "descKey": "tef.chubby"
+    },
+    {
+      "id": "TEF_ANIMAL_TEAM",
+      "tag": "TAG_RACE_ANIMAL",
+      "scope": "FORMATION",
+      "mode": "TIER",
+      "tierMode": "HIGHEST",
+      "target": { "side": "SAME", "hasTags": ["TAG_RACE_ANIMAL"] },
+      "tiers": [
+        {
+          "minLevel": 3,
+          "mods": [
+            { "stat": "ATK", "op": "PCT_ADD", "value": 2000 },
+            { "stat": "DEF", "op": "PCT_ADD", "value": 2000 }
+          ]
+        },
+        {
+          "minLevel": 6,
+          "mods": [
+            { "stat": "ATK", "op": "PCT_ADD", "value": 5000 },
+            { "stat": "DEF", "op": "PCT_ADD", "value": 5000 }
+          ]
+        },
+        {
+          "minLevel": 10,
+          "mods": [
+            { "stat": "ATK", "op": "PCT_ADD", "value": 9000 },
+            { "stat": "DEF", "op": "PCT_ADD", "value": 9000 },
+            { "stat": "MOVE_SPEED", "op": "PCT_ADD", "value": 5000 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TEF_HERD_FIELD",
+      "tag": "TAG_TRAIT_HERD",
+      "scope": "FIELD",
+      "mode": "TIER",
+      "tierMode": "CUMULATIVE",
+      "target": { "side": "SAME", "hasTags": ["TAG_TRAIT_HERD"] },
+      "tiers": [
+        { "minLevel": 3, "mods": [{ "stat": "ATK", "op": "PCT_ADD", "value": 4000 }] },
+        {
+          "minLevel": 5,
+          "mods": [
+            { "stat": "ATK", "op": "PCT_ADD", "value": 8000 },
+            { "stat": "KNOCKBACK_RESIST", "op": "FLAT_ADD", "value": 1 }
+          ]
+        }
+      ]
+    }
+  ]
+}

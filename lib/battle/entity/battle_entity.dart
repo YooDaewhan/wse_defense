@@ -40,8 +40,9 @@ class BattleEntity implements TagQueryTarget {
   late int hp;
   int shieldHp = 0; // 껍질
 
-  // 태그
-  final TagStack tags = TagStack();
+  // 태그. tags는 tagContribs를 합산한 캐시라 통째로 재계산해 교체될 수
+  // 있어(TagEffectResolver.onUnitTagsChanged, T-15) final이 아니다.
+  TagStack tags = TagStack();
   final List<TagContribution> tagContribs = [];
 
   // 스탯

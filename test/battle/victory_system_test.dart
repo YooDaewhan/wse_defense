@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wse_defense/battle/constants.dart';
 import 'package:wse_defense/battle/defs/datapack.dart';
 import 'package:wse_defense/battle/defs/stage_def.dart';
 import 'package:wse_defense/battle/system/victory_system.dart';

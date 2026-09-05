@@ -33,3 +33,7 @@ const int unitCap = 40; // 편당 최대 생존 유닛 수
 const int ultGaugeMax = 1800; // 60초 x 30틱
 const int ultGaugePerTick = 1;
 const int ultMaxStock = 1;
+
+/// 02_TAG_SYSTEM.md §8.
+const int fieldSampleTicks = 60; // 2초
+const int relationSampleTicks = 6; // 0.2초 (T-16 RelationSystem)

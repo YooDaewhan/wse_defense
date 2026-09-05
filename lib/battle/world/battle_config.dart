@@ -1,5 +1,7 @@
 import '../defs/stage_def.dart';
 import '../defs/unit_def.dart';
+import '../tag/tag_effect_def.dart';
+import '../tag/tag_registry.dart';
 
 /// `BattleWorld`를 세우는 데 필요한 최소 구성.
 ///
@@ -19,6 +21,8 @@ class BattleConfig {
     this.focusBoostBonus = const [0, 7, 14],
     this.focusBoostCap = const [0, 300, 600],
     this.focusBoostCost = const [0, 150, 250],
+    this.tagRegistry,
+    this.tagEffects = const [],
   });
 
   final StageDef stage;
@@ -26,6 +30,11 @@ class BattleConfig {
 
   /// 소환 가능한 편성 슬롯의 정적 정의(순서 = 슬롯 index).
   final List<UnitDef> formation;
+
+  /// null이면 `BattleWorld`가 빈 레지스트리로 대체한다 (39종 태그 로딩은
+  /// T-05 스코프라 여기선 강제하지 않음 — 태그를 안 쓰는 테스트는 그대로 둔다).
+  final TagRegistry? tagRegistry;
+  final List<TagEffectDef> tagEffects;
 
   final int focusBaseRegen; // 초당 회복(집중력 레벨 기본)
   final int focusBaseCap;
