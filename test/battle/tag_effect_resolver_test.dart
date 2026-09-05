@@ -141,11 +141,11 @@ void main() {
         sourceId: 'SKL_TEST_BUFF',
       ),
     );
-    world.tagEffectResolver.onUnitTagsChanged(e);
+    world.tagEffectResolver.onUnitTagsChanged(world, e);
     expect(e.stats.get(StatKey.maxHp), 1100);
 
     e.tagContribs.removeWhere((c) => c.sourceId == 'SKL_TEST_BUFF');
-    world.tagEffectResolver.onUnitTagsChanged(e);
+    world.tagEffectResolver.onUnitTagsChanged(world, e);
     expect(e.stats.get(StatKey.maxHp), 1050); // 오차 0으로 정확히 복귀
   });
 

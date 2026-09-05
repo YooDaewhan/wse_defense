@@ -1,5 +1,6 @@
 import '../entity/battle_entity.dart';
 import '../entity/entity_state.dart';
+import '../skill/skill_trigger_runner.dart';
 import '../stat/stat_key.dart';
 import '../world/battle_world.dart';
 import 'battle_system.dart';
@@ -10,9 +11,8 @@ import 'target_system.dart';
 /// 03_BATTLE_ENGINE.md §4: 공격 상태머신.
 /// cooldown 대기 -> [attackWindup](A틱) -> ★판정 -> [attackRecover](R틱) -> idle.
 ///
-/// `w.events`/`SkillTriggerRunner`는 아직 없어(이벤트 버스, T-18) 호출을
-/// 생략한다. 판정에서 맞은 대상 id는 [BattleEntity.lastHitTargetIds]에도
-/// 남겨 관측 가능하게 해둔다(테스트용).
+/// `w.events`는 아직 없어(이벤트 버스) 호출을 생략한다. 판정에서 맞은 대상
+/// id는 [BattleEntity.lastHitTargetIds]에도 남겨 관측 가능하게 해둔다(테스트용).
 class AttackSystem implements BattleSystem {
   @override
   void execute(BattleWorld w) {
@@ -33,6 +33,7 @@ class AttackSystem implements BattleSystem {
           if (e.actionTimer <= 0) {
             _resolveHit(w, e);
             e.completedAttacks++;
+            SkillTriggerRunner.onAttackCompleted(w, e);
             e.action = EntityAction.attackRecover;
             // attackCooldown은 windup 진입 시 attackPeriod로 스냅샷된 뒤 매 틱
             // 감소해왔으므로, 지금 값이 곧 (스냅샷된) P - A다. 공격속도가

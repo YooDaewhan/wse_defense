@@ -80,6 +80,10 @@ class BattleEntity implements TagQueryTarget {
   int stunImmuneUntilTick = 0; // 멈칫 종료 후 재적용 면역
   int pushImmuneUntilTick = 0; // 밀치기 효과 자체의 재적용 대기(3초)
 
+  /// ON_SPAWN/ON_DEATH/ON_HP_THRESHOLD처럼 "인스턴스 1회"인 스킬 트리거의
+  /// 발동 여부(skill.id 기준). 멤버십만 확인·기록하고 순회하지 않는다.
+  final Set<String> firedOnceTriggers = {};
+
   // 파생
   @override
   bool get isAlive => hp > 0;

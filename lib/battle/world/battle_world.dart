@@ -5,6 +5,7 @@ import '../entity/base_entity.dart';
 import '../entity/battle_entity.dart';
 import '../entity/entity_store.dart';
 import '../rng/deterministic_rng.dart';
+import '../skill/skill_trigger_runner.dart';
 import '../system/battle_system.dart';
 import '../system/pending_damage.dart';
 import '../tag/tag_contribution.dart';
@@ -141,6 +142,7 @@ class BattleWorld {
     }
     tagEffectResolver.resolveUnitOnSpawn(e, this);
     entities.add(e);
+    SkillTriggerRunner.onSpawn(this, e);
     return e;
   }
 

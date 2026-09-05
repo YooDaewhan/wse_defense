@@ -1,5 +1,6 @@
 import '../defs/stage_def.dart';
 import '../defs/unit_def.dart';
+import '../skill/skill_trigger_def.dart';
 import '../tag/tag_effect_def.dart';
 import '../tag/tag_registry.dart';
 import '../tag/tag_relation_rule.dart';
@@ -25,6 +26,7 @@ class BattleConfig {
     this.tagRegistry,
     this.tagEffects = const [],
     this.relationRules = const [],
+    this.skillDefs = const {},
   });
 
   final StageDef stage;
@@ -38,6 +40,9 @@ class BattleConfig {
   final TagRegistry? tagRegistry;
   final List<TagEffectDef> tagEffects;
   final List<TagRelationRule> relationRules;
+
+  /// 스킬 id -> 정의. 점 조회만 하고 순회하지 않는다.
+  final Map<String, SkillTriggerDef> skillDefs;
 
   final int focusBaseRegen; // 초당 회복(집중력 레벨 기본)
   final int focusBaseCap;

@@ -23,7 +23,7 @@ class GrantTagHandler extends EffectHandler {
         sourceId: src.id,
       ),
     );
-    w.tagEffectResolver.onUnitTagsChanged(target);
+    w.tagEffectResolver.onUnitTagsChanged(w, target);
     target.effects.add(
       EffectInstance(type: type, source: src, params: p, ticksLeft: p.durationTicks),
     );
@@ -34,6 +34,6 @@ class GrantTagHandler extends EffectHandler {
     target.tagContribs.removeWhere(
       (c) => c.sourceId == inst.source.id && c.kind == TagSourceKind.buff,
     );
-    w.tagEffectResolver.onUnitTagsChanged(target);
+    w.tagEffectResolver.onUnitTagsChanged(w, target);
   }
 }

@@ -1,5 +1,6 @@
 import '../constants.dart';
 import '../entity/battle_entity.dart';
+import '../skill/skill_trigger_runner.dart';
 import '../stat/stat_key.dart';
 import '../world/battle_world.dart';
 import 'battle_system.dart';
@@ -86,7 +87,9 @@ class DamageSystem implements BattleSystem {
         target.shieldHp -= absorbed;
         remaining -= absorbed;
       }
+      final hpBefore = target.hp;
       target.hp -= remaining;
+      SkillTriggerRunner.onHpChanged(w, target, hpBefore, target.hp);
 
       if (target.hp <= 0) continue; // 사망이 넉백보다 우선 (§6 4단계)
       _triggerKnockbackIfNeeded(w, target, forced, forcedDistance);

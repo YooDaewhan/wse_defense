@@ -1,4 +1,5 @@
 import '../entity/battle_entity.dart';
+import '../skill/skill_trigger_runner.dart';
 import '../stat/modifier.dart';
 import '../stat/modifier_source.dart';
 import '../world/battle_world.dart';
@@ -41,9 +42,10 @@ class TagEffectResolver {
 
   /// 유닛의 태그 스택이 바뀌었을 때(버프 획득/만료, 장비 변경). UNIT 스코프만
   /// 재평가한다 — FORMATION은 절대 안 변하고, FIELD는 다음 주기부터.
-  void onUnitTagsChanged(BattleEntity e) {
+  void onUnitTagsChanged(BattleWorld w, BattleEntity e) {
     _rebuildUnitTagStack(e);
     _reapplyUnitScopeEffects(e);
+    SkillTriggerRunner.onTagsChanged(w, e);
   }
 
   /// FIELD_SAMPLE_TICKS(60틱=2초)마다 TagResolveSystem이 호출한다.
