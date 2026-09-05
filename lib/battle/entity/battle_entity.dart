@@ -54,6 +54,11 @@ class BattleEntity implements TagQueryTarget {
   int? lockedTargetId; // 단일 공격 표적 고정
   int completedAttacks = 0; // N회 공격 트리거용
 
+  /// 이번 판정에서 실제로 맞은 대상 id들. DamageSystem(T-10)이 생기기 전까지
+  /// AttackSystem의 판정 결과를 관측하기 위한 임시 훅 — T-10에서 실제 피해
+  /// 큐(PendingDamage) 적재로 대체/확장된다.
+  List<int> lastHitTargetIds = [];
+
   // TargetSystem(T-08)이 매 틱 갱신, MovementSystem/AttackSystem(T-09)이 읽음.
   int? currentTargetId;
   bool currentTargetInRange = false;
