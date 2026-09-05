@@ -70,6 +70,7 @@ flutter:
   assets:
     - assets/data/v1/
     - assets/data/v1/stages/
+    - assets/data/v1/story/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1,0 +1,15 @@
+{
+  "beats": [
+    { "type": "BG", "key": "bg_church_window" },
+    { "type": "BGM", "key": "bgm_prologue_quiet" },
+    { "type": "LINE", "speakerKey": "spk.narration", "textKey": "story.prologue.l1" },
+    { "type": "LINE", "speakerKey": "spk.girl", "textKey": "story.prologue.l2" },
+    { "type": "FADE", "to": "WHITE", "durationMs": 600 },
+    { "type": "BG", "key": "bg_door_outside" },
+    { "type": "LINE", "speakerKey": "spk.narration", "textKey": "story.prologue.l3" },
+    { "type": "SFX", "key": "sfx_door_open" },
+    { "type": "LINE", "speakerKey": "spk.girl", "textKey": "story.prologue.l4" },
+    { "type": "BG", "key": "bg_sunny_forest" },
+    { "type": "LINE", "speakerKey": "spk.narration", "textKey": "story.prologue.l5" }
+  ]
+}

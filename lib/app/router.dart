@@ -6,12 +6,15 @@ import '../battle/defs/unit_def.dart';
 import '../battle/world/battle_config.dart';
 import '../battle/world/battle_world.dart';
 import '../battle/world/canonical_systems.dart';
+import '../data/local/journal_repository.dart';
+import '../domain/story/story_beat.dart';
 import '../game/battle_result.dart';
 import '../presentation/screens/adventure/adventure_map_screen.dart';
 import '../presentation/screens/adventure/stage_brief_screen.dart';
 import '../presentation/screens/battle/battle_screen.dart';
 import '../presentation/screens/battle_result/battle_result_screen.dart';
 import '../presentation/screens/splash/splash_screen.dart';
+import '../presentation/screens/story/story_player_screen.dart';
 import '../presentation/widgets/placeholder_screen.dart';
 
 /// 05_FRONTEND.md §2 라우트 표. 실제 화면이 아직 없는 곳은 전부
@@ -22,7 +25,15 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
     GoRoute(
       path: '/prologue',
-      builder: (context, state) => const PlaceholderScreen(title: '프롤로그'),
+      builder: (context, state) {
+        final extra = state.extra as ({List<StoryBeat> beats, JournalStore journalStore})?;
+        return StoryPlayerScreen(
+          sceneId: 'story.prologue',
+          beats: extra?.beats ?? const [LineBeat(textKey: 'story.prologue.l1')],
+          journalStore: extra?.journalStore ?? _NoopJournalStore(),
+          onFinished: () => context.go('/camp'),
+        );
+      },
     ),
     GoRoute(
       path: '/tutorial',
@@ -184,6 +195,16 @@ List<StageDef> _demoChapterStages() => const [
     timeLimitSec: 300,
   ),
 ];
+
+/// `/prologue`에 실제 저장소 없이(딥링크·직접 진입) 들어왔을 때의 자리
+/// 표시자 — 아무 것도 기록하지 않는다. 정상 진입 경로(부트스트랩 -> 캠프
+/// 최초 진입)는 실제 `JournalRepository`를 `extra`로 넘긴다.
+class _NoopJournalStore implements JournalStore {
+  @override
+  Set<String> get unlockedSceneIds => const {};
+  @override
+  void markUnlocked(String sceneId) {}
+}
 
 BattleResultSummary _demoBattleResult() => const BattleResultSummary(
   outcome: null,

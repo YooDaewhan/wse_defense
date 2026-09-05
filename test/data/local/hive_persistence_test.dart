@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:wse_defense/data/local/formation_repository.dart';
+import 'package:wse_defense/data/local/journal_repository.dart';
 import 'package:wse_defense/data/local/settings_repository.dart';
 import 'package:wse_defense/data/local/tutorial_repository.dart';
 
@@ -76,5 +77,18 @@ void main() {
     expect(reopened.completedSteps, {'T1', 'T2'});
     expect(reopened.isCompleted('T1'), isTrue);
     expect(reopened.isCompleted('T3'), isFalse);
+  });
+
+  test('T-33: journal (story scene) progress survives a simulated app restart', () async {
+    Hive.init(dir.path);
+    var box = await Hive.openBox(JournalRepository.boxName);
+    JournalRepository(box).markUnlocked('story.prologue');
+    await box.close();
+
+    Hive.init(dir.path);
+    box = await Hive.openBox(JournalRepository.boxName);
+    final reopened = JournalRepository(box);
+
+    expect(reopened.unlockedSceneIds, {'story.prologue'});
   });
 }
