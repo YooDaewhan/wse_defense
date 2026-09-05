@@ -1,0 +1,4 @@
+{
+  "id": "preset_a",
+  "units": ["CHR_ACORN", "CHR_DROPLET", "CHR_MUSHROOM", "CHR_BIRD", "CHR_BEAR"]
+}
