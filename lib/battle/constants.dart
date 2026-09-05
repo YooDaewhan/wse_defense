@@ -41,3 +41,10 @@ const int relationSampleTicks = 6; // 0.2초 (T-16 RelationSystem)
 /// 03_BATTLE_ENGINE.md §10.1 효과 라이브러리 상수.
 const int stunImmuneTicks = 30; // 멈칫 종료 후 재적용 면역 1초
 const int pushCooldownTicks = 90; // 밀치기 효과 자체의 재적용 대기 3초
+
+/// 03_BATTLE_ENGINE.md §11.1 필살기(간절한 기도). `ultKnockbackDistance`는
+/// 문서에 `ULT_KB`로만 언급되고 수치가 안 나와 있어(어떤 완료 조건도 특정
+/// 값을 요구하지 않음) 임의로 정한 값 — 실제 수치는 밸런스 조정 시 변경.
+const int ultDamage = 300;
+const int ultKnockbackDistance = 150;
+const int ultimateSourceId = -1; // 실제 엔티티 id와 겹치지 않는 예약값
