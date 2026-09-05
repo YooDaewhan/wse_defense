@@ -7,6 +7,8 @@ import '../battle/world/battle_config.dart';
 import '../battle/world/battle_world.dart';
 import '../battle/world/canonical_systems.dart';
 import '../game/battle_result.dart';
+import '../presentation/screens/adventure/adventure_map_screen.dart';
+import '../presentation/screens/adventure/stage_brief_screen.dart';
 import '../presentation/screens/battle/battle_screen.dart';
 import '../presentation/screens/battle_result/battle_result_screen.dart';
 import '../presentation/screens/splash/splash_screen.dart';
@@ -32,14 +34,26 @@ GoRouter buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/adventure',
-      builder: (context, state) => const PlaceholderScreen(title: '모험 지도'),
+      builder: (context, state) {
+        final extra = state.extra as ({List<StageDef> stages, Set<String> cleared, Datapack datapack})?;
+        final stages = extra?.stages ?? _demoChapterStages();
+        final datapack = extra?.datapack ?? const Datapack(characters: {}, enemies: {}, stages: {});
+        return AdventureMapScreen(
+          chapterStages: stages,
+          clearedStageIds: extra?.cleared ?? const {},
+          onStageTap: (stage) => context.push('/adventure/${stage.id}/brief', extra: (stage: stage, datapack: datapack)),
+        );
+      },
       routes: [
         GoRoute(
           path: ':stageId/brief',
-          builder: (context, state) => PlaceholderScreen(
-            title: '출격 브리핑',
-            subtitle: '스테이지: ${state.pathParameters['stageId']}',
-          ),
+          builder: (context, state) {
+            final extra = state.extra as ({StageDef stage, Datapack datapack})?;
+            return StageBriefScreen(
+              stage: extra?.stage ?? _demoChapterStages().first,
+              datapack: extra?.datapack ?? const Datapack(characters: {}, enemies: {}, stages: {}),
+            );
+          },
         ),
       ],
     ),
@@ -155,6 +169,21 @@ BattleWorld _demoBattleWorld() {
     systems: canonicalBattleSystems(),
   )..phase = BattlePhase.running;
 }
+
+/// `/adventure`에 편성 없이(딥링크·직접 진입) 들어왔을 때의 자리 표시자.
+/// 실제 진입 경로(캠프 -> 모험 지도)는 로딩된 실제 챕터 데이터를 `extra`로
+/// 넘긴다.
+List<StageDef> _demoChapterStages() => const [
+  StageDef(
+    id: 'STG_DEMO_1',
+    index: 1,
+    fieldLength: 2400,
+    allyBaseX: 0,
+    enemyBaseX: 2400,
+    enemyBaseHp: 4500,
+    timeLimitSec: 300,
+  ),
+];
 
 BattleResultSummary _demoBattleResult() => const BattleResultSummary(
   outcome: null,
