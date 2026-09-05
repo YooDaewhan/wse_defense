@@ -22,10 +22,16 @@ class DatapackLoader {
   final AssetReader _readJson;
   final void Function(String) _warn;
 
-  Future<Datapack> load() async {
+  /// [onProgress]는 파일 하나를 다 읽을 때마다 0~1 사이 값으로 호출된다
+  /// (부트스트랩 화면의 진행률 표시용, T-28). 순서: characters, enemies,
+  /// stages — 이 3단계 이상 세분화하지 않는다(그 이하로 쪼갤 이유가 없음).
+  Future<Datapack> load({void Function(double progress)? onProgress}) async {
     final characters = await _loadUnits('characters.json', 'characters');
+    onProgress?.call(1 / 3);
     final enemies = await _loadUnits('enemies.json', 'enemies');
+    onProgress?.call(2 / 3);
     final stages = await _loadStages('stages/chapter_1.json', enemies);
+    onProgress?.call(1.0);
     return Datapack(characters: characters, enemies: enemies, stages: stages);
   }
 

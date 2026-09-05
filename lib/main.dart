@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 
+import 'app/router.dart';
+import 'app/theme.dart';
+
 void main() {
-  runApp(const WseDefenseApp());
+  runApp(WseDefenseApp(router: buildAppRouter()));
 }
 
 class WseDefenseApp extends StatelessWidget {
-  const WseDefenseApp({super.key});
+  const WseDefenseApp({super.key, required this.router});
+
+  final RouterConfig<Object> router;
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp.router(
       title: 'WSE Defense',
-      home: Scaffold(body: SizedBox.shrink()),
+      theme: buildAppTheme(),
+      routerConfig: router,
     );
   }
 }
