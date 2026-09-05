@@ -5,6 +5,22 @@ import '../world/battle_world.dart';
 import 'battle_system.dart';
 import 'pending_damage.dart';
 
+/// 03_BATTLE_ENGINE.md §6.1: K = hpSegments. 자연 넉백은 최대 K-1회.
+/// 임계값은 maxHp * i / K (i = K-1 .. 1). alreadyConsumed는 회복으로 hp가
+/// 올라가도 되돌리지 않는다 — 반복 무적/재넉백 방지.
+int thresholdsCrossed(int maxHp, int k, int newHp, int alreadyConsumed) {
+  var crossed = 0;
+  for (var i = k - 1; i >= 1; i--) {
+    final th = maxHp * i ~/ k;
+    if (newHp <= th) crossed++;
+  }
+  var net = crossed - alreadyConsumed;
+  if (net < 0) net = 0;
+  final maxNet = k - 1 - alreadyConsumed;
+  if (net > maxNet) net = maxNet;
+  return net;
+}
+
 /// 03_BATTLE_ENGINE.md §7 피해 계산식.
 ///
 /// 1)/2) 조건부 주는/받는 피해(속성 상성 등)는 TagEffectResolver의 `vs`
@@ -46,9 +62,16 @@ class DamageSystem implements BattleSystem {
     while (i < queue.length) {
       final targetId = queue[i].targetId;
       var sum = 0;
+      var forced = false;
+      var forcedDistance = 0;
       var j = i;
       while (j < queue.length && queue[j].targetId == targetId) {
-        if (queue[j].kind == DamageKind.direct) sum += queue[j].amount;
+        final d = queue[j];
+        if (d.kind == DamageKind.direct) sum += d.amount;
+        if (d.causesForcedKb && !forced) {
+          forced = true;
+          forcedDistance = d.forcedKbDistance;
+        }
         j++;
       }
       i = j;
@@ -63,9 +86,51 @@ class DamageSystem implements BattleSystem {
         remaining -= absorbed;
       }
       target.hp -= remaining;
-      // HP 임계 통과 검사·강제 넉백 판정(§6.1~6.2)은 T-11 KnockbackSystem의 몫.
+
+      if (target.hp <= 0) continue; // 사망이 넉백보다 우선 (§6 4단계)
+      _triggerKnockbackIfNeeded(w, target, forced, forcedDistance);
     }
 
     w.pendingDamage.clear();
+  }
+
+  /// §6 5~6단계: HP 임계 통과 검사, 강제 넉백 적용 여부 판정 (§6.1~6.2).
+  void _triggerKnockbackIfNeeded(
+    BattleWorld w,
+    BattleEntity target,
+    bool forced,
+    int forcedDistance,
+  ) {
+    if (forced) {
+      if (target.knockbackTicksLeft > 0) return; // 넉백 중 추가 적중 -> 무시
+      if (w.tick < target.forcedKbImmuneUntilTick) return; // 재적용 차단(30틱)
+      final distance = target.def.isBoss ? forcedDistance ~/ 2 : forcedDistance;
+      _startKnockback(target, distance, isForced: true);
+      return;
+    }
+
+    final k = target.stats.get(StatKey.hpSegments);
+    if (k <= 1) return; // 구간이 사망뿐이면 자연 넉백 없음
+    final maxHp = target.stats.get(StatKey.maxHp);
+    final crossed = thresholdsCrossed(
+      maxHp,
+      k,
+      target.hp,
+      target.consumedHpThresholds,
+    );
+    if (crossed <= 0) return;
+
+    target.consumedHpThresholds += crossed; // 여러 임계를 넘어도 소비는 전부, 애니메이션은 1회
+    if (target.knockbackTicksLeft > 0) return; // 넉백 중 추가 임계 통과 -> 무시
+    _startKnockback(target, naturalKbDistance, isForced: false);
+  }
+
+  void _startKnockback(BattleEntity target, int distance, {required bool isForced}) {
+    if (distance <= 0) return;
+    target.knockbackTicksLeft = naturalKbTicks;
+    target.knockbackVelocity =
+        -target.facingSign * distance * posScale ~/ naturalKbTicks;
+    target.knockbackIsForced = isForced;
+    // action 전환은 KnockbackSystem(다음 실행 순서)이 담당한다.
   }
 }

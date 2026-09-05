@@ -66,6 +66,7 @@ class BattleEntity implements TagQueryTarget {
   // 넉백
   int knockbackTicksLeft = 0;
   int knockbackVelocity = 0; // 틱당 이동량(고정소수점), 부호는 후퇴 방향
+  bool knockbackIsForced = false; // 종료 시 forcedKbImmuneUntilTick 갱신 여부
   int forcedKbImmuneUntilTick = 0;
   int consumedHpThresholds = 0; // 소비한 자연 넉백 임계 수 (회복해도 복구 안 됨)
 

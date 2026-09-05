@@ -22,3 +22,8 @@ int speedPerTick(int speedPerSecLogical) =>
 
 /// n/d를 반올림하여 정수 나눗셈한다 (d > 0). §3.1의 반올림 표기 형태.
 int roundedDiv(int n, int d) => (n + d ~/ 2) ~/ d;
+
+/// 03_BATTLE_ENGINE.md §6.2 넉백 상수.
+const int naturalKbDistance = 90; // 논리 단위
+const int naturalKbTicks = 12; // 0.4초
+const int forcedKbImmuneTicks = 30; // 강제 넉백 재적용 방지 1초
