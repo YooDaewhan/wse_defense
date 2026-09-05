@@ -1,0 +1,54 @@
+{
+  "tags": [
+    { "id": "TAG_RACE_ANIMAL",  "category": "RACE", "sortOrder": 100 },
+    { "id": "TAG_RACE_PLANT",   "category": "RACE", "sortOrder": 101 },
+    { "id": "TAG_RACE_HUMAN",   "category": "RACE", "sortOrder": 102 },
+    { "id": "TAG_RACE_SPIRIT",  "category": "RACE", "sortOrder": 103 },
+    { "id": "TAG_RACE_DIVINE",  "category": "RACE", "sortOrder": 104 },
+    { "id": "TAG_RACE_DEMON",   "category": "RACE", "sortOrder": 105 },
+    { "id": "TAG_RACE_OBJECT",  "category": "RACE", "sortOrder": 106 },
+    { "id": "TAG_RACE_YOKAI",   "category": "RACE", "sortOrder": 107 },
+
+    { "id": "TAG_ELEM_FIRE",  "category": "ELEMENT", "sortOrder": 200 },
+    { "id": "TAG_ELEM_WATER", "category": "ELEMENT", "sortOrder": 201 },
+    { "id": "TAG_ELEM_WOOD",  "category": "ELEMENT", "sortOrder": 202 },
+    { "id": "TAG_ELEM_WIND",  "category": "ELEMENT", "sortOrder": 203 },
+    { "id": "TAG_ELEM_EARTH", "category": "ELEMENT", "sortOrder": 204 },
+    { "id": "TAG_ELEM_LIGHT", "category": "ELEMENT", "sortOrder": 205 },
+    { "id": "TAG_ELEM_DARK",  "category": "ELEMENT", "sortOrder": 206 },
+
+    { "id": "TAG_HABIT_DIURNAL",     "category": "HABIT", "sortOrder": 300 },
+    { "id": "TAG_HABIT_NOCTURNAL",   "category": "HABIT", "sortOrder": 301 },
+    { "id": "TAG_HABIT_CREPUSCULAR", "category": "HABIT", "sortOrder": 302 },
+
+    { "id": "TAG_TEMPER_SUN",   "category": "TEMPER", "maxUnitLevel": 1, "maxTeamLevel": 1, "sortOrder": 400 },
+    { "id": "TAG_TEMPER_MOON",  "category": "TEMPER", "maxUnitLevel": 1, "maxTeamLevel": 1, "sortOrder": 401 },
+    { "id": "TAG_TEMPER_FIELD", "category": "TEMPER", "maxUnitLevel": 1, "maxTeamLevel": 1, "sortOrder": 402 },
+
+    { "id": "TAG_BUILD_CHUBBY", "category": "BUILD", "sortOrder": 500 },
+    { "id": "TAG_BUILD_SMALL",  "category": "BUILD", "sortOrder": 501 },
+    { "id": "TAG_BUILD_LARGE",  "category": "BUILD", "sortOrder": 502 },
+    { "id": "TAG_BUILD_TINY",   "category": "BUILD", "sortOrder": 503 },
+
+    { "id": "TAG_TRAIT_SWIFT",  "category": "TRAIT", "sortOrder": 600 },
+    { "id": "TAG_TRAIT_FIERCE", "category": "TRAIT", "sortOrder": 601 },
+    { "id": "TAG_TRAIT_STURDY", "category": "TRAIT", "sortOrder": 602 },
+    { "id": "TAG_TRAIT_WINGED", "category": "TRAIT", "sortOrder": 603 },
+    { "id": "TAG_TRAIT_HERD",   "category": "TRAIT", "sortOrder": 604 },
+    { "id": "TAG_TRAIT_SLEEPY", "category": "TRAIT", "sortOrder": 605 },
+    { "id": "TAG_TRAIT_SPIKY",  "category": "TRAIT", "sortOrder": 606 },
+    { "id": "TAG_TRAIT_OLD",    "category": "TRAIT", "sortOrder": 607 },
+    {
+      "id": "TAG_TRAIT_COWARD",
+      "category": "TRAIT",
+      "sortOrder": 608,
+      "conflicts": [ { "with": "TAG_TRAIT_BRAVE", "resolve": "CANCEL_EQUAL" } ]
+    },
+    { "id": "TAG_TRAIT_BRAVE", "category": "TRAIT", "sortOrder": 609 },
+
+    { "id": "TAG_ROLE_DEFENDER",  "category": "ROLE", "sortOrder": 700 },
+    { "id": "TAG_ROLE_ATTACKER",  "category": "ROLE", "sortOrder": 701 },
+    { "id": "TAG_ROLE_SUPPORT",   "category": "ROLE", "sortOrder": 702 },
+    { "id": "TAG_ROLE_DISRUPTOR", "category": "ROLE", "sortOrder": 703 }
+  ]
+}
