@@ -6,27 +6,39 @@ import 'package:flame/game.dart';
 
 import '../battle/constants.dart';
 import '../battle/world/battle_world.dart';
+import 'anim/animation_bank.dart';
 import 'camera_follow.dart';
 import 'components/unit_component.dart';
 import 'render_constants.dart';
 import 'tick_clock.dart';
 
-/// 09_MILESTONES.md T-22 / 05_FRONTEND.md §4. 아트가 아직 없어(P0~P1 원칙)
-/// 색 사각형 플레이스홀더로만 렌더한다 — 배경/베이스/HUD는 이후 티켓.
+/// 09_MILESTONES.md T-22/T-23 / 05_FRONTEND.md §4. 아트가 아직 없어(P0~P1
+/// 원칙) 색 사각형 플레이스홀더로만 렌더한다 — 배경/베이스/HUD는 이후 티켓.
 ///
-/// 사망 유닛은 (T-23의 사망 클립이 아직 없어) 발견 즉시 컴포넌트를
-/// 제거한다 — 클립 종료까지 남겨두는 `_reapDead()`는 애니메이션이 생기는
-/// T-23에서 붙인다.
+/// `animationBank`는 기본적으로 비어 있다 — 실제 아틀라스/클립 데이터
+/// 로더가 아직 없어(캐릭터 데이터에 `art` 필드 자체가 없음) 모든 캐릭터가
+/// 항상 플레이스홀더+통짜 attack으로 폴백한다. 나중에 데이터가 생기면
+/// 채워진 `AnimationBank`를 주입하기만 하면 된다.
 class BattleGame extends FlameGame with DragCallbacks {
-  BattleGame({required this.battleWorld, this.speedMultiplier = 1.0});
+  BattleGame({required this.battleWorld, this.speedMultiplier = 1.0, AnimationBank? animationBank})
+    : animationBank = animationBank ?? AnimationBank();
 
   /// `FlameGame.world`(Flame 컴포넌트 트리 루트)와 이름이 겹쳐 별도로 둔다.
   final BattleWorld battleWorld;
   double speedMultiplier;
+  final AnimationBank animationBank;
 
   final TickClock clock = TickClock();
   final CameraFollow cameraFollow = CameraFollow();
   final Map<int, UnitComponent> _units = {};
+
+  /// 한 번 death 클립까지 재생하고 치운 엔티티 id — `BattleWorld.entities`는
+  /// 죽은 엔티티를 절대 지우지 않으므로(§1 EntityStore), 이 기록이 없으면
+  /// 다음 프레임에 새 컴포넌트가 또 만들어져 죽었다 살아났다를 반복한다.
+  final Set<int> _reaped = {};
+
+  /// 테스트/디버그 관찰용 — 현재 살아있는 컴포넌트 매핑을 그대로 노출한다.
+  Map<int, UnitComponent> get unitComponents => _units;
 
   late final World _flameWorld;
   late final CameraComponent _camera;
@@ -62,22 +74,27 @@ class BattleGame extends FlameGame with DragCallbacks {
       viewHeight / 2,
     );
 
-    _syncUnits();
+    _syncUnits(dt);
   }
 
-  void _syncUnits() {
+  /// 08_ASSET_PRODUCTION.md 완료조건: 사망 컴포넌트는 즉시가 아니라
+  /// death 클립이 끝난 뒤(`UnitComponent.readyToRemove`) 치운다.
+  void _syncUnits(double dt) {
     for (final e in battleWorld.entities.ordered) {
-      if (!e.isAlive) {
-        _units.remove(e.id)?.removeFromParent();
-        continue;
-      }
+      if (_reaped.contains(e.id)) continue;
+
       var c = _units[e.id];
       if (c == null) {
-        c = UnitComponent(entity: e);
+        c = UnitComponent(entity: e, animSet: animationBank.of(e.def.id));
         _units[e.id] = c;
         _flameWorld.add(c);
       }
-      c.applyState(e, clock.alpha);
+      c.applyState(e, clock.alpha, battleWorld.tick, dt);
+      if (c.readyToRemove) {
+        _reaped.add(e.id);
+        _units.remove(e.id);
+        c.removeFromParent();
+      }
     }
   }
 

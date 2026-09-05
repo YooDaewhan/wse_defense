@@ -5,6 +5,7 @@ import 'package:wse_defense/battle/constants.dart';
 import 'package:wse_defense/battle/defs/datapack.dart';
 import 'package:wse_defense/battle/defs/stage_def.dart';
 import 'package:wse_defense/battle/defs/unit_def.dart';
+import 'package:wse_defense/battle/entity/entity_state.dart';
 import 'package:wse_defense/battle/tag/tag_query.dart';
 import 'package:wse_defense/battle/world/battle_config.dart';
 import 'package:wse_defense/battle/world/battle_world.dart';
@@ -92,5 +93,26 @@ void main() {
     await _pumpFrames(tester, 1);
 
     expect(game.cameraFollow.isManual, isTrue);
+  });
+
+  testWidgets('a dead unit keeps its component through the (fallback) death clip duration, then it is removed', (
+    tester,
+  ) async {
+    final world = _newWorld();
+    final victim = world.spawnEntity(_unit, Side.ally, 0);
+    final game = BattleGame(battleWorld: world);
+
+    await tester.pumpWidget(MaterialApp(home: GameWidget(game: game)));
+    await _pumpFrames(tester, 3);
+    expect(game.unitComponents.containsKey(victim.id), isTrue);
+
+    victim.hp = 0;
+    victim.action = EntityAction.dead; // DeathSystem이 없는 축소 시나리오라 직접 표시
+
+    await _pumpFrames(tester, 3); // death 클립 시작 -- 아직 안 끝남(폴백 0.5초)
+    expect(game.unitComponents.containsKey(victim.id), isTrue);
+
+    await _pumpFrames(tester, 40); // 40 x 16ms = 0.64초 > 폴백 death 길이(0.5초)
+    expect(game.unitComponents.containsKey(victim.id), isFalse);
   });
 }
