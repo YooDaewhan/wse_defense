@@ -20,6 +20,7 @@ class DeathSystem implements BattleSystem {
 
       e.hp = 0;
       e.action = EntityAction.dead;
+      e.deathTick = w.tick;
       w.events.add(DeathEvent(w.tick, e.id));
 
       if (e.side == Side.enemy) {

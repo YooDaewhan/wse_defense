@@ -35,6 +35,10 @@ class BattleEntity implements TagQueryTarget {
   final UnitDef def; // 정적 정의 (불변)
   final int spawnTick;
 
+  /// DeathSystem이 사망 처리하는 순간의 tick. 살아있으면 null — 전투 결과
+  /// 화면(T-26)의 "전선 붕괴 시점" 계산에 쓴다.
+  int? deathTick;
+
   // 위치 (고정소수점, POS_SCALE=1000)
   int x;
   int xFrac = 0; // 이동 나머지 누적
@@ -118,6 +122,7 @@ class BattleEntity implements TagQueryTarget {
     'side': side.index,
     'defId': def.id,
     'spawnTick': spawnTick,
+    'deathTick': deathTick,
     'x': x,
     'xFrac': xFrac,
     'hp': hp,
@@ -160,6 +165,7 @@ class BattleEntity implements TagQueryTarget {
       spawnTick: data['spawnTick'] as int,
       x: data['x'] as int,
     );
+    e.deathTick = data['deathTick'] as int?;
     e.xFrac = data['xFrac'] as int;
     e.hp = data['hp'] as int;
     e.shieldHp = data['shieldHp'] as int;
