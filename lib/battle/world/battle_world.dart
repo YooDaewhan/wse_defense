@@ -4,6 +4,7 @@ import '../defs/unit_def.dart';
 import '../entity/base_entity.dart';
 import '../entity/battle_entity.dart';
 import '../entity/entity_store.dart';
+import '../event/battle_event.dart';
 import '../rng/deterministic_rng.dart';
 import '../skill/skill_trigger_runner.dart';
 import '../system/battle_system.dart';
@@ -99,6 +100,19 @@ class BattleWorld {
 
   /// 이번 틱에 큐잉된 피해. DamageSystem이 매 틱 소비 후 비운다.
   final List<PendingDamage> pendingDamage = [];
+
+  /// §13: 순수 알림 버퍼 — 어떤 시스템도 이 리스트를 읽지 않고 추가만 한다.
+  /// `EventFlushSystem`이 틱 끝에서 비운다. 렌더가 그 전에 [drainEvents]로
+  /// 먼저 가져가도 되고, 아예 안 가져가도(구독 없음) 시뮬 결과는 같다.
+  final List<BattleEvent> events = [];
+
+  /// 지금까지 쌓인 이벤트를 전부 꺼내고 비운다.
+  List<BattleEvent> drainEvents() {
+    if (events.isEmpty) return const [];
+    final drained = List<BattleEvent>.of(events);
+    events.clear();
+    return drained;
+  }
 
   final InputQueue inputs = InputQueue();
   void enqueueInput(BattleInput input) => inputs.add(tick, input);

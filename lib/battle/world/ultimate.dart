@@ -1,4 +1,5 @@
 import '../constants.dart';
+import '../event/battle_event.dart';
 import '../system/pending_damage.dart';
 import '../tag/tag_query.dart';
 import 'battle_world.dart';
@@ -16,6 +17,7 @@ import 'battle_world.dart';
 void castUltimate(BattleWorld w) {
   if (w.ultimateStock <= 0) return;
   w.ultimateStock--;
+  w.events.add(UltimateCastEvent(w.tick));
 
   for (final e in w.entities.ordered) {
     if (e.side != Side.enemy || !e.isTargetable) continue; // 넉백 중 무적 제외

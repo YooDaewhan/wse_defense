@@ -1,5 +1,6 @@
 import '../entity/battle_entity.dart';
 import '../entity/entity_state.dart';
+import '../event/battle_event.dart';
 import '../skill/skill_trigger_runner.dart';
 import '../stat/stat_key.dart';
 import '../world/battle_world.dart';
@@ -77,6 +78,7 @@ class AttackSystem implements BattleSystem {
         ? _selectAoeTargets(w, e)
         : _resolveSingleTarget(w, e);
     e.lastHitTargetIds = hits;
+    w.events.add(AttackFiredEvent(w.tick, e.id, hits)); // 헛쳐도(hits 비어도) 판정은 일어남 -> 스윙 SFX용
 
     for (final targetId in hits) {
       final target = w.entities.byId(targetId);

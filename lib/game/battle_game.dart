@@ -5,12 +5,18 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 
 import '../battle/constants.dart';
+import '../battle/event/battle_event.dart';
 import '../battle/world/battle_world.dart';
 import 'anim/animation_bank.dart';
 import 'camera_follow.dart';
 import 'components/unit_component.dart';
 import 'render_constants.dart';
 import 'tick_clock.dart';
+import 'vfx/damage_text_component.dart';
+import 'vfx/object_pool.dart';
+import 'vfx/sfx_dispatcher.dart';
+
+const int _damageTextPoolSize = 20; // 05_FRONTEND.md §11 성능 체크리스트
 
 /// 09_MILESTONES.md T-22/T-23 / 05_FRONTEND.md §4. 아트가 아직 없어(P0~P1
 /// 원칙) 색 사각형 플레이스홀더로만 렌더한다 — 배경/베이스/HUD는 이후 티켓.
@@ -20,13 +26,23 @@ import 'tick_clock.dart';
 /// 항상 플레이스홀더+통짜 attack으로 폴백한다. 나중에 데이터가 생기면
 /// 채워진 `AnimationBank`를 주입하기만 하면 된다.
 class BattleGame extends FlameGame with DragCallbacks {
-  BattleGame({required this.battleWorld, this.speedMultiplier = 1.0, AnimationBank? animationBank})
-    : animationBank = animationBank ?? AnimationBank();
+  BattleGame({
+    required this.battleWorld,
+    this.speedMultiplier = 1.0,
+    AnimationBank? animationBank,
+    void Function(String soundId)? onPlaySound,
+  }) : animationBank = animationBank ?? AnimationBank(),
+       sfx = SfxDispatcher(play: onPlaySound ?? (_) {});
 
   /// `FlameGame.world`(Flame 컴포넌트 트리 루트)와 이름이 겹쳐 별도로 둔다.
   final BattleWorld battleWorld;
   double speedMultiplier;
   final AnimationBank animationBank;
+
+  /// 실제 오디오 백엔드는 아직 없어(사운드 에셋 없음) 기본은 no-op —
+  /// 테스트/향후 flame_audio 연결부가 `onPlaySound`로 관찰·주입한다.
+  final SfxDispatcher sfx;
+  late final ObjectPool<DamageTextComponent> _damageTextPool;
 
   final TickClock clock = TickClock();
   final CameraFollow cameraFollow = CameraFollow();
@@ -55,6 +71,16 @@ class BattleGame extends FlameGame with DragCallbacks {
       world: _flameWorld,
     );
     await addAll([_flameWorld, _camera]);
+
+    _damageTextPool = ObjectPool<DamageTextComponent>(
+      maxSize: _damageTextPoolSize,
+      create: () {
+        final c = DamageTextComponent();
+        _flameWorld.add(c);
+        return c;
+      },
+      reset: (_) {}, // showAmount()가 text/position/ttl을 전부 다시 채운다
+    );
   }
 
   @override
@@ -75,6 +101,29 @@ class BattleGame extends FlameGame with DragCallbacks {
     );
 
     _syncUnits(dt);
+    _dispatchEvents();
+  }
+
+  /// 05_FRONTEND.md §4.2: 렌더가 매 프레임 `w.events`를 drain해 VFX/SFX/
+  /// 데미지 텍스트로 옮긴다 — 이 호출을 통째로 지워도(구독 중단) 위
+  /// `battleWorld.step()`의 결과는 전혀 달라지지 않는다(T-25 완료조건,
+  /// event_system_test.dart가 배틀 코어 쪽에서 이미 검증).
+  void _dispatchEvents() {
+    sfx.beginFrame();
+    for (final ev in battleWorld.drainEvents()) {
+      switch (ev) {
+        case AttackFiredEvent():
+          sfx.request('sfx_attack');
+        case DamageDealtEvent(:final targetId, :final amount):
+          sfx.request('sfx_hit');
+          final at = _units[targetId]?.position;
+          if (at != null) _damageTextPool.acquire().showAmount(amount, at);
+        case DeathEvent():
+          sfx.request('sfx_death');
+        case UltimateCastEvent():
+          sfx.request('sfx_ultimate');
+      }
+    }
   }
 
   /// 08_ASSET_PRODUCTION.md 완료조건: 사망 컴포넌트는 즉시가 아니라

@@ -66,6 +66,7 @@ SimResult runHeadlessBattle({
     }
     if (world.ultimateStock > 0) castUltimate(world);
     world.step();
+    world.drainEvents(); // 이 도구는 이벤트를 쓰지 않는다 -- 그냥 버려서 누적 방지(T-25)
     onTick?.call(world);
   }
 

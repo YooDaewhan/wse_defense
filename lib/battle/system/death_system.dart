@@ -1,4 +1,5 @@
 import '../entity/entity_state.dart';
+import '../event/battle_event.dart';
 import '../skill/skill_trigger_runner.dart';
 import '../tag/tag_query.dart';
 import '../world/battle_world.dart';
@@ -19,6 +20,7 @@ class DeathSystem implements BattleSystem {
 
       e.hp = 0;
       e.action = EntityAction.dead;
+      w.events.add(DeathEvent(w.tick, e.id));
 
       if (e.side == Side.enemy) {
         w.prayerPower += e.def.killPrayerReward;
