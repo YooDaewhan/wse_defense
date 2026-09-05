@@ -30,6 +30,7 @@ RelationKind _relationFromJson(String raw) => switch (raw) {
 class TagRelationRule {
   const TagRelationRule({
     required this.id,
+    this.nameKey = '',
     required this.subject,
     required this.other,
     required this.relation,
@@ -45,6 +46,10 @@ class TagRelationRule {
   });
 
   final String id;
+
+  /// 표시용 이름 키(편성 화면의 관계 규칙 예고 등, T-31). 전투 로직에는
+  /// 전혀 관여하지 않는 순수 메타데이터라 없어도(빈 문자열) 동작에 지장 없다.
+  final String nameKey;
   final TagQuery subject;
   final TagQuery other;
   final RelationKind relation;
@@ -71,6 +76,7 @@ class TagRelationRule {
     TagRegistry registry,
   ) => TagRelationRule(
     id: json['id'] as String,
+    nameKey: json['nameKey'] as String? ?? '',
     subject: TagQuery.fromJson(json['subject'] as Map<String, Object?>, registry),
     other: TagQuery.fromJson(json['other'] as Map<String, Object?>, registry),
     relation: _relationFromJson(json['relation'] as String),
