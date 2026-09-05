@@ -1,0 +1,84 @@
+import '../defs/datapack.dart';
+import '../entity/base_entity.dart';
+import '../entity/entity_store.dart';
+import '../rng/deterministic_rng.dart';
+import '../system/battle_system.dart';
+import '../tag/tag_query.dart';
+import 'battle_config.dart';
+
+enum BattlePhase { ready, running, finished }
+
+enum BattleOutcome { allyWin, enemyWin, draw, timeout }
+
+/// 03_BATTLE_ENGINE.md §1 최상위 인터페이스의 뼈대(T-07 스코프).
+///
+/// 아직 스킵한 것: `prayerPower`/`ultimateGauge`(T-12), `weather`(T-45),
+/// `events`/`inputs`(해당 시스템들이 생기기 전까지 쓸 데가 없음),
+/// `snapshot()`(T-22), `serialize()/deserialize()`(T-20). 지금 만들어봐야
+/// 아무도 채우지 않는 필드라 해당 티켓에서 추가한다.
+class BattleWorld {
+  BattleWorld({
+    required this.config,
+    required int rngSeed,
+    required this.datapack,
+    this.systems = const [],
+  }) : rng = DeterministicRng(rngSeed) {
+    allyBase = BaseEntity(
+      side: Side.ally,
+      x: config.stage.allyBaseX,
+      maxHp: config.allyBaseHp,
+    );
+    enemyBase = BaseEntity(
+      side: Side.enemy,
+      x: config.stage.enemyBaseX,
+      maxHp: config.stage.enemyBaseHp,
+    );
+  }
+
+  final BattleConfig config;
+  final Datapack datapack;
+  final DeterministicRng rng;
+  final List<BattleSystem> systems; // ★ 실행 순서 = 03_BATTLE_ENGINE.md §3
+
+  int tick = 0;
+  BattlePhase phase = BattlePhase.ready;
+  BattleOutcome? outcome;
+
+  // 엔티티 저장소 — entityId 오름차순 정렬 유지
+  final EntityStore entities = EntityStore();
+  late final BaseEntity allyBase; // 모닥불
+  late final BaseEntity enemyBase; // 둥지
+
+  /// 정확히 1틱 진행. 외부에서 이것만 호출한다.
+  void step() {
+    if (phase != BattlePhase.running) return;
+    for (final s in systems) {
+      s.execute(this);
+    }
+    tick++;
+  }
+
+  /// 결정론 검증용. hashCode(플랫폼/실행마다 다를 수 있음)는 쓰지 않고
+  /// FNV-1a를 32비트로 직접 굴려 VM/dart2js 어디서든 동일한 값이 나오게 한다.
+  int checksum() {
+    var h = 0x811c9dc5;
+    h = _fnvMix(h, tick);
+    h = _fnvMix(h, phase.index);
+    h = _fnvMix(h, outcome?.index ?? -1);
+    h = _fnvMix(h, allyBase.hp);
+    h = _fnvMix(h, enemyBase.hp);
+    for (final e in entities.all) {
+      h = _fnvMix(h, e.id);
+      h = _fnvMix(h, e.x);
+      h = _fnvMix(h, e.hp);
+      h = _fnvMix(h, e.action.index);
+    }
+    return h;
+  }
+}
+
+int _fnvMix(int h, int value) {
+  h = (h ^ (value & 0xffffffff)) & 0xffffffff;
+  h = (h * 0x01000193) & 0xffffffff;
+  return h;
+}

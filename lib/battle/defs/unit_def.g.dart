@@ -53,6 +53,7 @@ Map<String, dynamic> _$UnitBaseStatsToJson(_UnitBaseStats instance) =>
 _UnitDef _$UnitDefFromJson(Map<String, dynamic> json) => _UnitDef(
   id: json['id'] as String,
   nameKey: json['nameKey'] as String? ?? '',
+  role: json['role'] as String?,
   intrinsicTags:
       (json['intrinsicTags'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, (e as num).toInt()),
@@ -70,6 +71,7 @@ _UnitDef _$UnitDefFromJson(Map<String, dynamic> json) => _UnitDef(
 Map<String, dynamic> _$UnitDefToJson(_UnitDef instance) => <String, dynamic>{
   'id': instance.id,
   'nameKey': instance.nameKey,
+  'role': instance.role,
   'intrinsicTags': instance.intrinsicTags,
   'base': instance.base,
   'skills': instance.skills,

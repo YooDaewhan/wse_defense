@@ -1,9 +1,9 @@
 import 'dart:convert';
 
+import '../../battle/defs/datapack.dart';
 import '../../battle/defs/stage_def.dart';
 import '../../battle/defs/unit_def.dart';
 import '../../battle/defs/wave_def.dart';
-import 'datapack.dart';
 
 /// 상대 경로(예: `characters.json`, `stages/chapter_1.json`)를 받아
 /// `assets/data/v1/` 밑의 JSON 문자열을 돌려준다. 실제 앱에서는

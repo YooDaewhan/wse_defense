@@ -337,7 +337,7 @@ as String,
 /// @nodoc
 mixin _$UnitDef {
 
- String get id; String get nameKey; Map<String, int> get intrinsicTags; UnitBaseStats get base; List<String> get skills; bool get isBoss; int get killPrayerReward; int? get damageCapPerHit;
+ String get id; String get nameKey; String? get role; Map<String, int> get intrinsicTags; UnitBaseStats get base; List<String> get skills; bool get isBoss; int get killPrayerReward; int? get damageCapPerHit;
 /// Create a copy of UnitDef
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -351,20 +351,20 @@ $UnitDefCopyWith<UnitDef> get copyWith => _$UnitDefCopyWithImpl<UnitDef>(this as
 @override
 bool operator ==(Object other) {
   final _this = this as UnitDef;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UnitDef&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.nameKey, _this.nameKey) || other.nameKey == _this.nameKey)&&const DeepCollectionEquality().equals(other.intrinsicTags, _this.intrinsicTags)&&(identical(other.base, _this.base) || other.base == _this.base)&&const DeepCollectionEquality().equals(other.skills, _this.skills)&&(identical(other.isBoss, _this.isBoss) || other.isBoss == _this.isBoss)&&(identical(other.killPrayerReward, _this.killPrayerReward) || other.killPrayerReward == _this.killPrayerReward)&&(identical(other.damageCapPerHit, _this.damageCapPerHit) || other.damageCapPerHit == _this.damageCapPerHit));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UnitDef&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.nameKey, _this.nameKey) || other.nameKey == _this.nameKey)&&(identical(other.role, _this.role) || other.role == _this.role)&&const DeepCollectionEquality().equals(other.intrinsicTags, _this.intrinsicTags)&&(identical(other.base, _this.base) || other.base == _this.base)&&const DeepCollectionEquality().equals(other.skills, _this.skills)&&(identical(other.isBoss, _this.isBoss) || other.isBoss == _this.isBoss)&&(identical(other.killPrayerReward, _this.killPrayerReward) || other.killPrayerReward == _this.killPrayerReward)&&(identical(other.damageCapPerHit, _this.damageCapPerHit) || other.damageCapPerHit == _this.damageCapPerHit));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as UnitDef;
-  return Object.hash(runtimeType,_this.id,_this.nameKey,const DeepCollectionEquality().hash(_this.intrinsicTags),_this.base,const DeepCollectionEquality().hash(_this.skills),_this.isBoss,_this.killPrayerReward,_this.damageCapPerHit);
+  return Object.hash(runtimeType,_this.id,_this.nameKey,_this.role,const DeepCollectionEquality().hash(_this.intrinsicTags),_this.base,const DeepCollectionEquality().hash(_this.skills),_this.isBoss,_this.killPrayerReward,_this.damageCapPerHit);
 }
 
 @override
 String toString() {
   final _this = this as UnitDef;
-  return 'UnitDef(id: ${_this.id}, nameKey: ${_this.nameKey}, intrinsicTags: ${_this.intrinsicTags}, base: ${_this.base}, skills: ${_this.skills}, isBoss: ${_this.isBoss}, killPrayerReward: ${_this.killPrayerReward}, damageCapPerHit: ${_this.damageCapPerHit})';
+  return 'UnitDef(id: ${_this.id}, nameKey: ${_this.nameKey}, role: ${_this.role}, intrinsicTags: ${_this.intrinsicTags}, base: ${_this.base}, skills: ${_this.skills}, isBoss: ${_this.isBoss}, killPrayerReward: ${_this.killPrayerReward}, damageCapPerHit: ${_this.damageCapPerHit})';
 }
 
 
@@ -375,7 +375,7 @@ abstract mixin class $UnitDefCopyWith<$Res>  {
   factory $UnitDefCopyWith(UnitDef value, $Res Function(UnitDef) _then) = _$UnitDefCopyWithImpl;
 @useResult
 $Res call({
- String id, String nameKey, Map<String, int> intrinsicTags, UnitBaseStats base, List<String> skills, bool isBoss, int killPrayerReward, int? damageCapPerHit
+ String id, String nameKey, String? role, Map<String, int> intrinsicTags, UnitBaseStats base, List<String> skills, bool isBoss, int killPrayerReward, int? damageCapPerHit
 });
 
 
@@ -392,11 +392,12 @@ class _$UnitDefCopyWithImpl<$Res>
 
 /// Create a copy of UnitDef
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nameKey = null,Object? intrinsicTags = null,Object? base = null,Object? skills = null,Object? isBoss = null,Object? killPrayerReward = null,Object? damageCapPerHit = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? nameKey = null,Object? role = freezed,Object? intrinsicTags = null,Object? base = null,Object? skills = null,Object? isBoss = null,Object? killPrayerReward = null,Object? damageCapPerHit = freezed,}) {
   return _then(UnitDef(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,nameKey: null == nameKey ? _self.nameKey : nameKey // ignore: cast_nullable_to_non_nullable
-as String,intrinsicTags: null == intrinsicTags ? _self.intrinsicTags : intrinsicTags // ignore: cast_nullable_to_non_nullable
+as String,role: freezed == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as String?,intrinsicTags: null == intrinsicTags ? _self.intrinsicTags : intrinsicTags // ignore: cast_nullable_to_non_nullable
 as Map<String, int>,base: null == base ? _self.base : base // ignore: cast_nullable_to_non_nullable
 as UnitBaseStats,skills: null == skills ? _self.skills : skills // ignore: cast_nullable_to_non_nullable
 as List<String>,isBoss: null == isBoss ? _self.isBoss : isBoss // ignore: cast_nullable_to_non_nullable
@@ -496,10 +497,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String nameKey,  Map<String, int> intrinsicTags,  UnitBaseStats base,  List<String> skills,  bool isBoss,  int killPrayerReward,  int? damageCapPerHit)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String nameKey,  String? role,  Map<String, int> intrinsicTags,  UnitBaseStats base,  List<String> skills,  bool isBoss,  int killPrayerReward,  int? damageCapPerHit)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UnitDef() when $default != null:
-return $default(_that.id,_that.nameKey,_that.intrinsicTags,_that.base,_that.skills,_that.isBoss,_that.killPrayerReward,_that.damageCapPerHit);case _:
+return $default(_that.id,_that.nameKey,_that.role,_that.intrinsicTags,_that.base,_that.skills,_that.isBoss,_that.killPrayerReward,_that.damageCapPerHit);case _:
   return orElse();
 
 }
@@ -517,10 +518,10 @@ return $default(_that.id,_that.nameKey,_that.intrinsicTags,_that.base,_that.skil
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String nameKey,  Map<String, int> intrinsicTags,  UnitBaseStats base,  List<String> skills,  bool isBoss,  int killPrayerReward,  int? damageCapPerHit)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String nameKey,  String? role,  Map<String, int> intrinsicTags,  UnitBaseStats base,  List<String> skills,  bool isBoss,  int killPrayerReward,  int? damageCapPerHit)  $default,) {final _that = this;
 switch (_that) {
 case _UnitDef():
-return $default(_that.id,_that.nameKey,_that.intrinsicTags,_that.base,_that.skills,_that.isBoss,_that.killPrayerReward,_that.damageCapPerHit);case _:
+return $default(_that.id,_that.nameKey,_that.role,_that.intrinsicTags,_that.base,_that.skills,_that.isBoss,_that.killPrayerReward,_that.damageCapPerHit);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -537,10 +538,10 @@ return $default(_that.id,_that.nameKey,_that.intrinsicTags,_that.base,_that.skil
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String nameKey,  Map<String, int> intrinsicTags,  UnitBaseStats base,  List<String> skills,  bool isBoss,  int killPrayerReward,  int? damageCapPerHit)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String nameKey,  String? role,  Map<String, int> intrinsicTags,  UnitBaseStats base,  List<String> skills,  bool isBoss,  int killPrayerReward,  int? damageCapPerHit)?  $default,) {final _that = this;
 switch (_that) {
 case _UnitDef() when $default != null:
-return $default(_that.id,_that.nameKey,_that.intrinsicTags,_that.base,_that.skills,_that.isBoss,_that.killPrayerReward,_that.damageCapPerHit);case _:
+return $default(_that.id,_that.nameKey,_that.role,_that.intrinsicTags,_that.base,_that.skills,_that.isBoss,_that.killPrayerReward,_that.damageCapPerHit);case _:
   return null;
 
 }
@@ -552,11 +553,12 @@ return $default(_that.id,_that.nameKey,_that.intrinsicTags,_that.base,_that.skil
 @JsonSerializable()
 
 class _UnitDef implements UnitDef {
-  const _UnitDef({required this.id, this.nameKey = '',  Map<String, int> intrinsicTags = const <String, int>{}, required this.base,  List<String> skills = const <String>[], this.isBoss = false, this.killPrayerReward = 0, this.damageCapPerHit}): _intrinsicTags = intrinsicTags,_skills = skills;
+  const _UnitDef({required this.id, this.nameKey = '', this.role,  Map<String, int> intrinsicTags = const <String, int>{}, required this.base,  List<String> skills = const <String>[], this.isBoss = false, this.killPrayerReward = 0, this.damageCapPerHit}): _intrinsicTags = intrinsicTags,_skills = skills;
   factory _UnitDef.fromJson(Map<String, dynamic> json) => _$UnitDefFromJson(json);
 
 @override final  String id;
 @override@JsonKey() final  String nameKey;
+@override final  String? role;
  final  Map<String, int> _intrinsicTags;
 @override@JsonKey() Map<String, int> get intrinsicTags {
   if (_intrinsicTags is EqualUnmodifiableMapView) return _intrinsicTags;
@@ -589,18 +591,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UnitDef&&(identical(other.id, id) || other.id == id)&&(identical(other.nameKey, nameKey) || other.nameKey == nameKey)&&const DeepCollectionEquality().equals(other.intrinsicTags, _intrinsicTags)&&(identical(other.base, base) || other.base == base)&&const DeepCollectionEquality().equals(other.skills, _skills)&&(identical(other.isBoss, isBoss) || other.isBoss == isBoss)&&(identical(other.killPrayerReward, killPrayerReward) || other.killPrayerReward == killPrayerReward)&&(identical(other.damageCapPerHit, damageCapPerHit) || other.damageCapPerHit == damageCapPerHit));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UnitDef&&(identical(other.id, id) || other.id == id)&&(identical(other.nameKey, nameKey) || other.nameKey == nameKey)&&(identical(other.role, role) || other.role == role)&&const DeepCollectionEquality().equals(other.intrinsicTags, _intrinsicTags)&&(identical(other.base, base) || other.base == base)&&const DeepCollectionEquality().equals(other.skills, _skills)&&(identical(other.isBoss, isBoss) || other.isBoss == isBoss)&&(identical(other.killPrayerReward, killPrayerReward) || other.killPrayerReward == killPrayerReward)&&(identical(other.damageCapPerHit, damageCapPerHit) || other.damageCapPerHit == damageCapPerHit));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,nameKey,const DeepCollectionEquality().hash(_intrinsicTags),base,const DeepCollectionEquality().hash(_skills),isBoss,killPrayerReward,damageCapPerHit);
+    return Object.hash(runtimeType,id,nameKey,role,const DeepCollectionEquality().hash(_intrinsicTags),base,const DeepCollectionEquality().hash(_skills),isBoss,killPrayerReward,damageCapPerHit);
 }
 
 @override
 String toString() {
-    return 'UnitDef(id: $id, nameKey: $nameKey, intrinsicTags: $intrinsicTags, base: $base, skills: $skills, isBoss: $isBoss, killPrayerReward: $killPrayerReward, damageCapPerHit: $damageCapPerHit)';
+    return 'UnitDef(id: $id, nameKey: $nameKey, role: $role, intrinsicTags: $intrinsicTags, base: $base, skills: $skills, isBoss: $isBoss, killPrayerReward: $killPrayerReward, damageCapPerHit: $damageCapPerHit)';
 }
 
 
@@ -611,7 +613,7 @@ abstract mixin class _$UnitDefCopyWith<$Res> implements $UnitDefCopyWith<$Res> {
   factory _$UnitDefCopyWith(_UnitDef value, $Res Function(_UnitDef) _then) = __$UnitDefCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String nameKey, Map<String, int> intrinsicTags, UnitBaseStats base, List<String> skills, bool isBoss, int killPrayerReward, int? damageCapPerHit
+ String id, String nameKey, String? role, Map<String, int> intrinsicTags, UnitBaseStats base, List<String> skills, bool isBoss, int killPrayerReward, int? damageCapPerHit
 });
 
 
@@ -628,11 +630,12 @@ class __$UnitDefCopyWithImpl<$Res>
 
 /// Create a copy of UnitDef
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nameKey = null,Object? intrinsicTags = null,Object? base = null,Object? skills = null,Object? isBoss = null,Object? killPrayerReward = null,Object? damageCapPerHit = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? nameKey = null,Object? role = freezed,Object? intrinsicTags = null,Object? base = null,Object? skills = null,Object? isBoss = null,Object? killPrayerReward = null,Object? damageCapPerHit = freezed,}) {
   return _then(_UnitDef(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,nameKey: null == nameKey ? _self.nameKey : nameKey // ignore: cast_nullable_to_non_nullable
-as String,intrinsicTags: null == intrinsicTags ? _self._intrinsicTags : intrinsicTags // ignore: cast_nullable_to_non_nullable
+as String,role: freezed == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as String?,intrinsicTags: null == intrinsicTags ? _self._intrinsicTags : intrinsicTags // ignore: cast_nullable_to_non_nullable
 as Map<String, int>,base: null == base ? _self.base : base // ignore: cast_nullable_to_non_nullable
 as UnitBaseStats,skills: null == skills ? _self._skills : skills // ignore: cast_nullable_to_non_nullable
 as List<String>,isBoss: null == isBoss ? _self.isBoss : isBoss // ignore: cast_nullable_to_non_nullable

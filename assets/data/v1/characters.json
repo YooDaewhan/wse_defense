@@ -3,6 +3,7 @@
     {
       "id": "CHR_ACORN",
       "nameKey": "chr.acorn",
+      "role": "ROLE_DEFENDER",
       "intrinsicTags": { "TAG_TEMPER_FIELD": 1, "TAG_RACE_PLANT": 1 },
       "base": {
         "summonCost": 75,
@@ -29,6 +30,7 @@
     {
       "id": "CHR_DROPLET",
       "nameKey": "chr.droplet",
+      "role": "ROLE_ATTACKER",
       "intrinsicTags": { "TAG_TEMPER_MOON": 1, "TAG_ELEM_WATER": 1 },
       "base": {
         "summonCost": 200,
@@ -55,6 +57,7 @@
     {
       "id": "CHR_MUSHROOM",
       "nameKey": "chr.mushroom",
+      "role": "ROLE_ATTACKER",
       "intrinsicTags": { "TAG_TEMPER_FIELD": 1, "TAG_RACE_PLANT": 1 },
       "base": {
         "summonCost": 350,
@@ -81,6 +84,7 @@
     {
       "id": "CHR_BIRD",
       "nameKey": "chr.bird",
+      "role": "ROLE_DISRUPTOR",
       "intrinsicTags": { "TAG_TEMPER_SUN": 1, "TAG_RACE_ANIMAL": 1 },
       "base": {
         "summonCost": 500,
@@ -107,6 +111,7 @@
     {
       "id": "CHR_BEAR",
       "nameKey": "chr.bear",
+      "role": "ROLE_DEFENDER",
       "intrinsicTags": { "TAG_TEMPER_MOON": 1, "TAG_RACE_ANIMAL": 1 },
       "base": {
         "summonCost": 900,

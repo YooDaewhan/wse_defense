@@ -40,6 +40,7 @@ abstract class UnitDef with _$UnitDef {
   const factory UnitDef({
     required String id,
     @Default('') String nameKey,
+    String? role, // "ROLE_DEFENDER" 등 (§6.7). TagQuery의 roles 필터 대상.
     @Default(<String, int>{}) Map<String, int> intrinsicTags,
     required UnitBaseStats base,
     @Default(<String>[]) List<String> skills,
