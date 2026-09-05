@@ -20,6 +20,10 @@ class StatSheet {
     _dirty = true;
   }
 
+  /// 직렬화(T-20)용 읽기 전용 스냅샷. 제거는 여전히 [removeBySource]/
+  /// [removeByInstance]로만 한다 — 외부에서 리스트를 직접 건드리지 못하게.
+  List<StatModifier> get modifiers => List.unmodifiable(_modifiers);
+
   /// 해당 출처(kind, id)의 모디파이어를 통째로 제거한다.
   void removeBySource(ModifierKind kind, String id) {
     _modifiers.removeWhere((m) => m.source.kind == kind && m.source.id == id);

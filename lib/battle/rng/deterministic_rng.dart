@@ -63,4 +63,31 @@ class DeterministicRng {
   DeterministicRng stream(RngStream s) {
     return _streams[s.index] ??= DeterministicRng._child(_seed, s.index + 1);
   }
+
+  /// 03_BATTLE_ENGINE.md §14 직렬화(T-20)용. 아직 뽑지 않은 스트림은
+  /// 내보내지 않는다 — 복원 시 최초 사용 시점에 그대로 다시 지연 생성된다.
+  Map<String, Object?> exportState() => {
+    'x': _x,
+    'y': _y,
+    'z': _z,
+    'w': _w,
+    'streams': {
+      for (var i = 0; i < _streams.length; i++)
+        if (_streams[i] != null) '$i': _streams[i]!.exportState(),
+    },
+  };
+
+  /// [exportState]의 역. 같은 seed로 만든 인스턴스에 대해서만 호출한다.
+  void restoreState(Map<String, Object?> data) {
+    _x = data['x'] as int;
+    _y = data['y'] as int;
+    _z = data['z'] as int;
+    _w = data['w'] as int;
+    final streams = data['streams'] as Map<String, Object?>;
+    for (final entry in streams.entries) {
+      final idx = int.parse(entry.key);
+      final child = _streams[idx] ??= DeterministicRng._child(_seed, idx + 1);
+      child.restoreState(entry.value as Map<String, Object?>);
+    }
+  }
 }

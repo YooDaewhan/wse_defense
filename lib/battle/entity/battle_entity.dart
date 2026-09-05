@@ -1,10 +1,15 @@
 import '../constants.dart';
 import '../defs/unit_def.dart';
 import '../effect/effect_instance.dart';
+import '../effect/effect_params.dart';
+import '../stat/modifier.dart';
+import '../stat/modifier_source.dart';
 import '../stat/stat_key.dart';
 import '../stat/stat_sheet.dart';
 import '../tag/tag_contribution.dart';
+import '../tag/tag_effect_def.dart' show StatModDef;
 import '../tag/tag_query.dart';
+import '../tag/tag_registry.dart';
 import '../tag/tag_relation_state.dart';
 import '../tag/tag_stack.dart';
 import 'entity_state.dart';
@@ -105,6 +110,97 @@ class BattleEntity implements TagQueryTarget {
   @override
   int tagLevel(int tagIndex) => tags.levelOf(tagIndex);
 
+  /// 03_BATTLE_ENGINE.md §14 직렬화(T-20). `tags`는 `tagContribs`의 순수
+  /// 캐시라(TagEffectResolver._rebuildUnitTagStack와 동일한 계산) 내보내지
+  /// 않는다 — 복원 시 `tagRegistry.buildStack(tagContribs)`로 다시 만든다.
+  Map<String, Object?> serialize() => {
+    'id': id,
+    'side': side.index,
+    'defId': def.id,
+    'spawnTick': spawnTick,
+    'x': x,
+    'xFrac': xFrac,
+    'hp': hp,
+    'shieldHp': shieldHp,
+    'tagContribs': [for (final c in tagContribs) _tagContribToJson(c)],
+    'statModifiers': [for (final m in stats.modifiers) _statModifierToJson(m)],
+    'action': action.index,
+    'actionTimer': actionTimer,
+    'attackCooldown': attackCooldown,
+    'lockedTargetId': lockedTargetId,
+    'completedAttacks': completedAttacks,
+    'lastHitTargetIds': lastHitTargetIds,
+    'currentTargetId': currentTargetId,
+    'currentTargetInRange': currentTargetInRange,
+    'knockbackTicksLeft': knockbackTicksLeft,
+    'knockbackVelocity': knockbackVelocity,
+    'knockbackIsForced': knockbackIsForced,
+    'forcedKbImmuneUntilTick': forcedKbImmuneUntilTick,
+    'consumedHpThresholds': consumedHpThresholds,
+    'relationStates': {
+      for (final e in relationStates.entries) e.key: _relationStateToJson(e.value),
+    },
+    'effects': [for (final e in effects) _effectInstanceToJson(e)],
+    'stunImmuneUntilTick': stunImmuneUntilTick,
+    'pushImmuneUntilTick': pushImmuneUntilTick,
+    'firedOnceTriggers': firedOnceTriggers.toList(),
+  };
+
+  /// [serialize]의 역. `def`는 호출부(BattleWorld.deserialize)가
+  /// `defId`로 formation/datapack에서 찾아 넘긴다.
+  static BattleEntity deserialize(
+    Map<String, Object?> data,
+    UnitDef def,
+    TagRegistry tagRegistry,
+  ) {
+    final e = BattleEntity(
+      id: data['id'] as int,
+      side: Side.values[data['side'] as int],
+      def: def,
+      spawnTick: data['spawnTick'] as int,
+      x: data['x'] as int,
+    );
+    e.xFrac = data['xFrac'] as int;
+    e.hp = data['hp'] as int;
+    e.shieldHp = data['shieldHp'] as int;
+    e.tagContribs.addAll([
+      for (final c in data['tagContribs'] as List<Object?>)
+        _tagContribFromJson(c as Map<String, Object?>),
+    ]);
+    e.tags = tagRegistry.buildStack(e.tagContribs);
+    for (final m in data['statModifiers'] as List<Object?>) {
+      e.stats.addModifier(_statModifierFromJson(m as Map<String, Object?>));
+    }
+    e.action = EntityAction.values[data['action'] as int];
+    e.actionTimer = data['actionTimer'] as int;
+    e.attackCooldown = data['attackCooldown'] as int;
+    e.lockedTargetId = data['lockedTargetId'] as int?;
+    e.completedAttacks = data['completedAttacks'] as int;
+    e.lastHitTargetIds = [
+      for (final id in data['lastHitTargetIds'] as List<Object?>) id as int,
+    ];
+    e.currentTargetId = data['currentTargetId'] as int?;
+    e.currentTargetInRange = data['currentTargetInRange'] as bool;
+    e.knockbackTicksLeft = data['knockbackTicksLeft'] as int;
+    e.knockbackVelocity = data['knockbackVelocity'] as int;
+    e.knockbackIsForced = data['knockbackIsForced'] as bool;
+    e.forcedKbImmuneUntilTick = data['forcedKbImmuneUntilTick'] as int;
+    e.consumedHpThresholds = data['consumedHpThresholds'] as int;
+    (data['relationStates'] as Map<String, Object?>).forEach((k, v) {
+      e.relationStates[k] = _relationStateFromJson(v as Map<String, Object?>);
+    });
+    e.effects.addAll([
+      for (final ev in data['effects'] as List<Object?>)
+        _effectInstanceFromJson(ev as Map<String, Object?>),
+    ]);
+    e.stunImmuneUntilTick = data['stunImmuneUntilTick'] as int;
+    e.pushImmuneUntilTick = data['pushImmuneUntilTick'] as int;
+    e.firedOnceTriggers.addAll([
+      for (final t in data['firedOnceTriggers'] as List<Object?>) t as String,
+    ]);
+    return e;
+  }
+
   static StatSheet _baseStatsFrom(UnitDef def) {
     final b = def.base;
     return StatSheet({
@@ -125,3 +221,124 @@ class BattleEntity implements TagQueryTarget {
     });
   }
 }
+
+// --- T-20 직렬화 헬퍼: 전부 필드가 public인 단순 값 타입이라 해당 클래스를
+// 건드리지 않고 여기서 변환한다. enum은 인덱스로 저장(내부 라운드트립
+// 전용 포맷 — data/*.json의 문자열 포맷과는 무관).
+
+Map<String, Object?> _tagContribToJson(TagContribution c) => {
+  'tagIndex': c.tagIndex,
+  'amount': c.amount,
+  'kind': c.kind.index,
+  'sourceId': c.sourceId,
+  'expireTick': c.expireTick,
+};
+
+TagContribution _tagContribFromJson(Map<String, Object?> j) => TagContribution(
+  tagIndex: j['tagIndex'] as int,
+  amount: j['amount'] as int,
+  kind: TagSourceKind.values[j['kind'] as int],
+  sourceId: j['sourceId'] as String,
+  expireTick: j['expireTick'] as int?,
+);
+
+Map<String, Object?> _modifierSourceToJson(ModifierSource s) => {
+  'kind': s.kind.index,
+  'id': s.id,
+  'instanceId': s.instanceId,
+};
+
+ModifierSource _modifierSourceFromJson(Map<String, Object?> j) => ModifierSource(
+  ModifierKind.values[j['kind'] as int],
+  j['id'] as String,
+  instanceId: j['instanceId'] as int?,
+);
+
+Map<String, Object?> _statModifierToJson(StatModifier m) => {
+  'stat': m.stat.index,
+  'op': m.op.index,
+  'value': m.value,
+  'source': _modifierSourceToJson(m.source),
+  'exclusiveGroup': m.exclusiveGroup,
+};
+
+StatModifier _statModifierFromJson(Map<String, Object?> j) => StatModifier(
+  stat: StatKey.values[j['stat'] as int],
+  op: ModOp.values[j['op'] as int],
+  value: j['value'] as int,
+  source: _modifierSourceFromJson(j['source'] as Map<String, Object?>),
+  exclusiveGroup: j['exclusiveGroup'] as String?,
+);
+
+Map<String, Object?> _statModDefToJson(StatModDef m) => {
+  'stat': m.stat.index,
+  'op': m.op.index,
+  'value': m.value,
+  'exclusiveGroup': m.exclusiveGroup,
+};
+
+StatModDef _statModDefFromJson(Map<String, Object?> j) => StatModDef(
+  stat: StatKey.values[j['stat'] as int],
+  op: ModOp.values[j['op'] as int],
+  value: j['value'] as int,
+  exclusiveGroup: j['exclusiveGroup'] as String?,
+);
+
+Map<String, Object?> _relationStateToJson(RelationState s) => {
+  'active': s.active,
+  'activeSince': s.activeSince,
+  'offCounter': s.offCounter,
+  'scale': s.scale,
+};
+
+RelationState _relationStateFromJson(Map<String, Object?> j) => RelationState()
+  ..active = j['active'] as bool
+  ..activeSince = j['activeSince'] as int
+  ..offCounter = j['offCounter'] as int
+  ..scale = j['scale'] as int;
+
+Map<String, Object?> _effectParamsToJson(EffectParams p) => {
+  'durationTicks': p.durationTicks,
+  'movePct': p.movePct,
+  'attackPeriodMult': p.attackPeriodMult,
+  'distance': p.distance,
+  'amount': p.amount,
+  'pctOfMaxHp': p.pctOfMaxHp,
+  'intervalTicks': p.intervalTicks,
+  'mods': [for (final m in p.mods) _statModDefToJson(m)],
+  'exclusiveGroup': p.exclusiveGroup,
+  'tagIndex': p.tagIndex,
+  'tagAmount': p.tagAmount,
+};
+
+EffectParams _effectParamsFromJson(Map<String, Object?> j) => EffectParams(
+  durationTicks: j['durationTicks'] as int,
+  movePct: j['movePct'] as int,
+  attackPeriodMult: j['attackPeriodMult'] as int,
+  distance: j['distance'] as int,
+  amount: j['amount'] as int,
+  pctOfMaxHp: j['pctOfMaxHp'] as int,
+  intervalTicks: j['intervalTicks'] as int,
+  mods: [
+    for (final m in j['mods'] as List<Object?>)
+      _statModDefFromJson(m as Map<String, Object?>),
+  ],
+  exclusiveGroup: j['exclusiveGroup'] as String?,
+  tagIndex: j['tagIndex'] as int,
+  tagAmount: j['tagAmount'] as int,
+);
+
+Map<String, Object?> _effectInstanceToJson(EffectInstance e) => {
+  'type': e.type,
+  'source': _modifierSourceToJson(e.source),
+  'params': _effectParamsToJson(e.params),
+  'ticksLeft': e.ticksLeft,
+  'tickAccumulator': e.tickAccumulator,
+};
+
+EffectInstance _effectInstanceFromJson(Map<String, Object?> j) => EffectInstance(
+  type: j['type'] as String,
+  source: _modifierSourceFromJson(j['source'] as Map<String, Object?>),
+  params: _effectParamsFromJson(j['params'] as Map<String, Object?>),
+  ticksLeft: j['ticksLeft'] as int,
+)..tickAccumulator = j['tickAccumulator'] as int;

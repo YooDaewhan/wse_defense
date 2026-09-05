@@ -162,6 +162,120 @@ class BattleWorld {
 
   /// 결정론 검증용. hashCode(플랫폼/실행마다 다를 수 있음)는 쓰지 않고
   /// FNV-1a를 32비트로 직접 굴려 VM/dart2js 어디서든 동일한 값이 나오게 한다.
+  /// 03_BATTLE_ENGINE.md §14 직렬화(T-20). `config`/`datapack`/`systems`는
+  /// 여기 담지 않는다 — 리플레이는 항상 그것들을 그대로 다시 넘겨 새
+  /// `BattleWorld`를 만들고 그 위에 이 상태를 얹는 방식이라(§14 "리플레이 =
+  /// BattleWorld(config, seed) 새로 만들고 재생"), 정적 구성까지 중복 저장할
+  /// 이유가 없다. `inputs`/`pendingDamage`는 정의상 한 틱 처리 안에서만
+  /// 채워졌다 비워지므로(§1 enqueueInput 문서, DamageSystem 문서) 틱 경계에서
+  /// 호출되는 이 메서드 시점엔 항상 비어 있다 — 그래도 만약을 위해 그대로
+  /// 저장/복원한다.
+  Map<String, Object?> serialize() => {
+    'tick': tick,
+    'phase': phase.index,
+    'outcome': outcome?.index,
+    'nextEntityId': _nextEntityId,
+    'allyBaseHp': allyBase.hp,
+    'allyBaseDestroyed': allyBase.destroyed,
+    'allyBaseDamageImmune': allyBase.damageImmune,
+    'enemyBaseHp': enemyBase.hp,
+    'enemyBaseDestroyed': enemyBase.destroyed,
+    'enemyBaseDamageImmune': enemyBase.damageImmune,
+    'prayerPower': prayerPower,
+    'prayerPowerFrac': prayerPowerFrac,
+    'focusBoostStage': focusBoostStage,
+    'ultimateGauge': ultimateGauge,
+    'ultimateStock': ultimateStock,
+    'weatherRegenPct': weatherRegenPct,
+    'rng': rng.exportState(),
+    'formationCooldowns': [for (final s in formation) s.cooldownLeft],
+    'waveSpawnedCounts': [for (final w in waveStates) w.spawnedCount],
+    'bossTriggers': [
+      for (final b in bossTriggers)
+        {'state': b.state.index, 'warningTicksLeft': b.warningTicksLeft},
+    ],
+    'formationTagLevel': _tagStackToJson(formationTagLevel),
+    'allyFieldTagLevel': _tagStackToJson(allyFieldTagLevel),
+    'enemyFieldTagLevel': _tagStackToJson(enemyFieldTagLevel),
+    'pendingDamage': [for (final p in pendingDamage) _pendingDamageToJson(p)],
+    'entities': [for (final e in entities.ordered) e.serialize()],
+  };
+
+  /// [serialize]의 역. `config`/`datapack`/`systems`는 호출부가 원본과
+  /// 동일한 값을 다시 넘긴다(리플레이 원칙, 위 주석 참고).
+  static BattleWorld deserialize(
+    Map<String, Object?> data, {
+    required BattleConfig config,
+    required Datapack datapack,
+    required int rngSeed,
+    List<BattleSystem> systems = const [],
+  }) {
+    final w = BattleWorld(
+      config: config,
+      rngSeed: rngSeed,
+      datapack: datapack,
+      systems: systems,
+    );
+    w.tick = data['tick'] as int;
+    w.phase = BattlePhase.values[data['phase'] as int];
+    final outcomeIdx = data['outcome'] as int?;
+    w.outcome = outcomeIdx == null ? null : BattleOutcome.values[outcomeIdx];
+    w._nextEntityId = data['nextEntityId'] as int;
+    w.allyBase.hp = data['allyBaseHp'] as int;
+    w.allyBase.destroyed = data['allyBaseDestroyed'] as bool;
+    w.allyBase.damageImmune = data['allyBaseDamageImmune'] as bool;
+    w.enemyBase.hp = data['enemyBaseHp'] as int;
+    w.enemyBase.destroyed = data['enemyBaseDestroyed'] as bool;
+    w.enemyBase.damageImmune = data['enemyBaseDamageImmune'] as bool;
+    w.prayerPower = data['prayerPower'] as int;
+    w.prayerPowerFrac = data['prayerPowerFrac'] as int;
+    w.focusBoostStage = data['focusBoostStage'] as int;
+    w.ultimateGauge = data['ultimateGauge'] as int;
+    w.ultimateStock = data['ultimateStock'] as int;
+    w.weatherRegenPct = data['weatherRegenPct'] as int;
+    w.rng.restoreState(data['rng'] as Map<String, Object?>);
+
+    final formationCooldowns = data['formationCooldowns'] as List<Object?>;
+    for (var i = 0; i < formationCooldowns.length; i++) {
+      w.formation[i].cooldownLeft = formationCooldowns[i] as int;
+    }
+    final waveSpawnedCounts = data['waveSpawnedCounts'] as List<Object?>;
+    for (var i = 0; i < waveSpawnedCounts.length; i++) {
+      w.waveStates[i].spawnedCount = waveSpawnedCounts[i] as int;
+    }
+    final bossTriggers = data['bossTriggers'] as List<Object?>;
+    for (var i = 0; i < bossTriggers.length; i++) {
+      final bt = bossTriggers[i] as Map<String, Object?>;
+      w.bossTriggers[i].state = BossTriggerState.values[bt['state'] as int];
+      w.bossTriggers[i].warningTicksLeft = bt['warningTicksLeft'] as int;
+    }
+
+    w.formationTagLevel = _tagStackFromJson(
+      data['formationTagLevel'] as List<Object?>,
+    );
+    w.allyFieldTagLevel = _tagStackFromJson(
+      data['allyFieldTagLevel'] as List<Object?>,
+    );
+    w.enemyFieldTagLevel = _tagStackFromJson(
+      data['enemyFieldTagLevel'] as List<Object?>,
+    );
+    w.pendingDamage.addAll([
+      for (final p in data['pendingDamage'] as List<Object?>)
+        _pendingDamageFromJson(p as Map<String, Object?>),
+    ]);
+
+    for (final ed in data['entities'] as List<Object?>) {
+      final entityData = ed as Map<String, Object?>;
+      final defId = entityData['defId'] as String;
+      final def = _findUnitDef(config, datapack, defId);
+      if (def == null) {
+        throw StateError('직렬화 복원 실패: UnitDef를 찾을 수 없음 - $defId');
+      }
+      w.entities.add(BattleEntity.deserialize(entityData, def, w.tagRegistry));
+    }
+    return w;
+  }
+
   int checksum() {
     var h = 0x811c9dc5;
     h = _fnvMix(h, tick);
@@ -183,4 +297,46 @@ int _fnvMix(int h, int value) {
   h = (h ^ (value & 0xffffffff)) & 0xffffffff;
   h = (h * 0x01000193) & 0xffffffff;
   return h;
+}
+
+// --- T-20 직렬화 헬퍼 ---
+
+List<Object?> _tagStackToJson(TagStack s) => [
+  for (final (tagIndex, level) in s.entries()) [tagIndex, level],
+];
+
+TagStack _tagStackFromJson(List<Object?> raw) {
+  final s = TagStack();
+  for (final entry in raw) {
+    final pair = entry as List<Object?>;
+    s.add(pair[0] as int, pair[1] as int);
+  }
+  return s;
+}
+
+Map<String, Object?> _pendingDamageToJson(PendingDamage p) => {
+  'targetId': p.targetId,
+  'sourceId': p.sourceId,
+  'amount': p.amount,
+  'kind': p.kind.index,
+  'causesForcedKb': p.causesForcedKb,
+  'forcedKbDistance': p.forcedKbDistance,
+};
+
+PendingDamage _pendingDamageFromJson(Map<String, Object?> j) => PendingDamage(
+  targetId: j['targetId'] as int,
+  sourceId: j['sourceId'] as int,
+  amount: j['amount'] as int,
+  kind: DamageKind.values[j['kind'] as int],
+  causesForcedKb: j['causesForcedKb'] as bool,
+  forcedKbDistance: j['forcedKbDistance'] as int,
+);
+
+/// 편성(아군 소환 슬롯) 우선, 없으면 캐릭터/적 데이터팩 순으로 조회한다.
+/// `spawnEntity`가 실제로 엔티티를 만들 때 def를 가져오는 두 경로와 동일.
+UnitDef? _findUnitDef(BattleConfig config, Datapack datapack, String id) {
+  for (final u in config.formation) {
+    if (u.id == id) return u;
+  }
+  return datapack.characterById(id) ?? datapack.enemyById(id);
 }
