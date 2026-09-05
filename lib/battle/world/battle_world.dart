@@ -11,6 +11,7 @@ import '../tag/tag_query.dart';
 import 'battle_config.dart';
 import 'battle_input.dart';
 import 'formation_slot.dart';
+import 'spawn_runtime.dart';
 
 enum BattlePhase { ready, running, finished }
 
@@ -29,6 +30,12 @@ class BattleWorld {
     this.systems = const [],
   }) : rng = DeterministicRng(rngSeed),
        formation = [for (final def in config.formation) FormationSlot(def)],
+       waveStates = [
+         for (final w in config.stage.waves) WaveRuntimeState(w),
+       ],
+       bossTriggers = [
+         for (final b in config.stage.bossTriggers) BossTriggerRuntime(b),
+       ],
        prayerPower = config.startingPrayerPower,
        ultimateGauge = ultGaugeMax ~/ 2 {
     // 좌표는 고정소수점(POS_SCALE)로 저장한다 (01_ARCHITECTURE.md §3.1).
@@ -67,6 +74,8 @@ class BattleWorld {
   int weatherRegenPct = pctScale; // WeatherSystem(T-45) 전까지 100% 고정
 
   final List<FormationSlot> formation;
+  final List<WaveRuntimeState> waveStates;
+  final List<BossTriggerRuntime> bossTriggers;
 
   /// 이번 틱에 큐잉된 피해. DamageSystem이 매 틱 소비 후 비운다.
   final List<PendingDamage> pendingDamage = [];
