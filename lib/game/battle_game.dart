@@ -5,6 +5,7 @@ import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 
 import '../battle/constants.dart';
+import '../battle/entity/battle_entity.dart';
 import '../battle/event/battle_event.dart';
 import '../battle/world/battle_world.dart';
 import 'anim/animation_bank.dart';
@@ -31,8 +32,13 @@ class BattleGame extends FlameGame with DragCallbacks {
     this.speedMultiplier = 1.0,
     AnimationBank? animationBank,
     void Function(String soundId)? onPlaySound,
+    this.onUnitTapped,
   }) : animationBank = animationBank ?? AnimationBank(),
        sfx = SfxDispatcher(play: onPlaySound ?? (_) {});
+
+  /// §6.1: 유닛 탭 콜백. 일시정지 여부에 따라 상세 패널을 보여줄지는
+  /// 호출부(BattleScreen)가 `paused`를 보고 결정한다 — 여기선 그냥 전달만.
+  final void Function(BattleEntity entity)? onUnitTapped;
 
   /// `FlameGame.world`(Flame 컴포넌트 트리 루트)와 이름이 겹쳐 별도로 둔다.
   final BattleWorld battleWorld;
@@ -134,7 +140,12 @@ class BattleGame extends FlameGame with DragCallbacks {
 
       var c = _units[e.id];
       if (c == null) {
-        c = UnitComponent(entity: e, animSet: animationBank.of(e.def.id));
+        c = UnitComponent(
+          entity: e,
+          tagRegistry: battleWorld.tagRegistry,
+          animSet: animationBank.of(e.def.id),
+          onTap: onUnitTapped,
+        );
         _units[e.id] = c;
         _flameWorld.add(c);
       }

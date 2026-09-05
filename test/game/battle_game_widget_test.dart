@@ -93,6 +93,9 @@ void main() {
     await _pumpFrames(tester, 1);
 
     expect(game.cameraFollow.isManual, isTrue);
+    // 유닛 컴포넌트들도 이제 TapCallbacks를 갖고 있어(T-27), 드래그와 겹치는
+    // 탭/롱프레스 제스처 아레나 판정 타이머가 남지 않도록 충분히 흘려보낸다.
+    await _pumpFrames(tester, 50);
   });
 
   testWidgets('a dead unit keeps its component through the (fallback) death clip duration, then it is removed', (
