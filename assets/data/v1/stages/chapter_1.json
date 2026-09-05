@@ -1,0 +1,183 @@
+{
+  "chapterId": "CH_1",
+  "nameKey": "chapter.1",
+  "stages": [
+    {
+      "id": "STG_1_1",
+      "index": 1,
+      "nameKey": "stage.1.1",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 4500,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0, "intervalSec": 6, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_2",
+      "index": 2,
+      "nameKey": "stage.1.2",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 6000,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0, "intervalSec": 6, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_3",
+      "index": 3,
+      "nameKey": "stage.1.3",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 7500,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_4",
+      "index": 4,
+      "nameKey": "stage.1.4",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 9000,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_5",
+      "index": 5,
+      "nameKey": "stage.1.5",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 10500,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_TURTLE",   "startSec": 40, "intervalSec": 25, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_6",
+      "index": 6,
+      "nameKey": "stage.1.6",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 12000,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_TURTLE",   "startSec": 40, "intervalSec": 25, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_7",
+      "index": 7,
+      "nameKey": "stage.1.7",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 13500,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_TURTLE",   "startSec": 40, "intervalSec": 25, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_HEDGEHOG", "startSec": 60, "intervalSec": 20, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_8",
+      "index": 8,
+      "nameKey": "stage.1.8",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 15000,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_TURTLE",   "startSec": 40, "intervalSec": 25, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_HEDGEHOG", "startSec": 60, "intervalSec": 20, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_9",
+      "index": 9,
+      "nameKey": "stage.1.9",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 16500,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_TURTLE",   "startSec": 40, "intervalSec": 25, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_HEDGEHOG", "startSec": 60, "intervalSec": 20, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ]
+    },
+    {
+      "id": "STG_1_10",
+      "index": 10,
+      "nameKey": "stage.1.10",
+      "fieldLength": 2400,
+      "allyBaseX": 0,
+      "enemyBaseX": 2400,
+      "enemyBaseHp": 18000,
+      "timeLimitSec": 300,
+      "minClearSec": 45,
+      "targetClearSec": [180, 240],
+      "waves": [
+        { "enemyId": "ENM_SQUIRREL", "startSec": 0,  "intervalSec": 6,  "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_WOLF",     "startSec": 15, "intervalSec": 12, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_TURTLE",   "startSec": 40, "intervalSec": 25, "count": -1, "stopSec": 180, "spawnX": 2350 },
+        { "enemyId": "ENM_HEDGEHOG", "startSec": 60, "intervalSec": 20, "count": -1, "stopSec": 180, "spawnX": 2350 }
+      ],
+      "bossTriggers": [
+        {
+          "id": "BOSS_1_10_MAIN",
+          "enemyId": "ENM_FOREST_BEAR",
+          "conditionKind": "NEST_FIRST_HIT",
+          "warningTicks": 45,
+          "spawnX": 2380
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "enemies": [
+    {
+      "id": "ENM_SQUIRREL",
+      "nameKey": "enm.squirrel",
+      "isBoss": false,
+      "intrinsicTags": { "TAG_RACE_ANIMAL": 1, "TAG_BUILD_SMALL": 1, "TAG_TRAIT_SWIFT": 1 },
+      "base": {
+        "maxHp": 400,
+        "atk": 60,
+        "attackPeriod": 45,
+        "attackWindup": 9,
+        "attackRecover": 36,
+        "attackRange": 120,
+        "moveSpeed": 120,
+        "hpSegments": 1,
+        "collisionRadius": 22,
+        "knockbackDistance": 90,
+        "knockbackResist": 0,
+        "def": 0,
+        "attackMode": "SINGLE",
+        "aoeMaxTargets": 1
+      },
+      "killPrayerReward": 10
+    },
+    {
+      "id": "ENM_WOLF",
+      "nameKey": "enm.wolf",
+      "isBoss": false,
+      "intrinsicTags": { "TAG_RACE_ANIMAL": 1, "TAG_TRAIT_FIERCE": 1 },
+      "base": {
+        "maxHp": 1600,
+        "atk": 220,
+        "attackPeriod": 75,
+        "attackWindup": 18,
+        "attackRecover": 57,
+        "attackRange": 150,
+        "moveSpeed": 80,
+        "hpSegments": 2,
+        "collisionRadius": 26,
+        "knockbackDistance": 90,
+        "knockbackResist": 0,
+        "def": 0,
+        "attackMode": "SINGLE",
+        "aoeMaxTargets": 1
+      },
+      "killPrayerReward": 35
+    },
+    {
+      "id": "ENM_TURTLE",
+      "nameKey": "enm.turtle",
+      "isBoss": false,
+      "intrinsicTags": { "TAG_RACE_ANIMAL": 1, "TAG_TRAIT_STURDY": 1 },
+      "base": {
+        "maxHp": 6000,
+        "atk": 300,
+        "attackPeriod": 120,
+        "attackWindup": 30,
+        "attackRecover": 90,
+        "attackRange": 130,
+        "moveSpeed": 40,
+        "hpSegments": 1,
+        "collisionRadius": 32,
+        "knockbackDistance": 60,
+        "knockbackResist": 1,
+        "def": 20000,
+        "attackMode": "SINGLE",
+        "aoeMaxTargets": 1
+      },
+      "killPrayerReward": 60
+    },
+    {
+      "id": "ENM_HEDGEHOG",
+      "nameKey": "enm.hedgehog",
+      "isBoss": false,
+      "intrinsicTags": { "TAG_RACE_ANIMAL": 1, "TAG_BUILD_SMALL": 1 },
+      "base": {
+        "maxHp": 900,
+        "atk": 480,
+        "attackPeriod": 150,
+        "attackWindup": 45,
+        "attackRecover": 105,
+        "attackRange": 460,
+        "moveSpeed": 60,
+        "hpSegments": 2,
+        "collisionRadius": 24,
+        "knockbackDistance": 90,
+        "knockbackResist": 0,
+        "def": 0,
+        "attackMode": "AOE",
+        "aoeMaxTargets": 3
+      },
+      "killPrayerReward": 30
+    },
+    {
+      "id": "ENM_FOREST_BEAR",
+      "nameKey": "enm.forest_bear",
+      "isBoss": true,
+      "intrinsicTags": { "TAG_RACE_ANIMAL": 2, "TAG_BUILD_LARGE": 2, "TAG_TRAIT_FIERCE": 1 },
+      "base": {
+        "maxHp": 24000,
+        "atk": 1600,
+        "attackPeriod": 130,
+        "attackWindup": 45,
+        "attackRecover": 85,
+        "attackRange": 320,
+        "moveSpeed": 30,
+        "hpSegments": 3,
+        "collisionRadius": 70,
+        "knockbackDistance": 45,
+        "knockbackResist": 2,
+        "def": 10000,
+        "attackMode": "AOE",
+        "aoeMaxTargets": 5
+      },
+      "killPrayerReward": 200,
+      "damageCapPerHit": 4000
+    }
+  ]
+}

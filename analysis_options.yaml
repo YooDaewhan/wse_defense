@@ -19,22 +19,11 @@ analyzer:
     - macos/**
     - linux/**
 
-plugins:
-  import_lint: 2.0.0
-
-# import_lint only understands `package:` imports, so dart:ui / dart:io bans
-# on lib/battle/** stay a code-review rule (see 01_ARCHITECTURE.md §1).
-import_lint:
-  severity: error
-  rules:
-    battle_no_flutter:
-      target: "package:wse_defense/battle/**.dart"
-      from: "package:flutter/**"
-      except: []
-    battle_no_flame:
-      target: "package:wse_defense/battle/**.dart"
-      from: "package:flame/**"
-      except: []
+# lib/battle/** import ban (package:flutter/flame, dart:ui/dart:io) is
+# enforced by `dart run tool/check_battle_imports.dart`, not by the analyzer.
+# import_lint would do this natively, but its analyzer ^12.1.0 constraint
+# conflicts with freezed 4.x's analyzer >=13.0.0 (needed for T-04's models),
+# so it was replaced with a tiny dependency-free script (see 01_ARCHITECTURE.md §1).
 
 linter:
   # The lint rules applied to this project can be customized in the
