@@ -1,5 +1,6 @@
 import '../constants.dart';
 import '../defs/unit_def.dart';
+import '../effect/effect_instance.dart';
 import '../stat/stat_key.dart';
 import '../stat/stat_sheet.dart';
 import '../tag/tag_contribution.dart';
@@ -12,9 +13,6 @@ import 'entity_state.dart';
 ///
 /// `TagQuery`(T-06)가 요구하는 [TagQueryTarget]을 구현한다 — T-06이 이
 /// 티켓보다 먼저 배치돼 있어 최소 인터페이스로 앞서 정의해뒀던 것.
-///
-/// `effects`(EffectInstance, T-17)와 `relationStates`(RelationState, T-16)는
-/// 아직 그 타입들이 없어 스킵한다. 해당 티켓에서 필드를 추가한다.
 class BattleEntity implements TagQueryTarget {
   BattleEntity({
     required this.id,
@@ -76,6 +74,11 @@ class BattleEntity implements TagQueryTarget {
   /// 조회하므로(RelationSystem이 rules 리스트 순서로 접근) Map 순회 금지
   /// 규칙에 저촉되지 않는다.
   final Map<String, RelationState> relationStates = {};
+
+  /// 상태 효과(T-17). StatusSystem이 매 틱 처리·만료시킨다.
+  final List<EffectInstance> effects = [];
+  int stunImmuneUntilTick = 0; // 멈칫 종료 후 재적용 면역
+  int pushImmuneUntilTick = 0; // 밀치기 효과 자체의 재적용 대기(3초)
 
   // 파생
   @override

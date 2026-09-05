@@ -37,3 +37,7 @@ const int ultMaxStock = 1;
 /// 02_TAG_SYSTEM.md §8.
 const int fieldSampleTicks = 60; // 2초
 const int relationSampleTicks = 6; // 0.2초 (T-16 RelationSystem)
+
+/// 03_BATTLE_ENGINE.md §10.1 효과 라이브러리 상수.
+const int stunImmuneTicks = 30; // 멈칫 종료 후 재적용 면역 1초
+const int pushCooldownTicks = 90; // 밀치기 효과 자체의 재적용 대기 3초

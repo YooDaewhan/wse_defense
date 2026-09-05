@@ -3,6 +3,7 @@ import '../entity/battle_entity.dart';
 import '../stat/stat_key.dart';
 import '../world/battle_world.dart';
 import 'battle_system.dart';
+import 'knockback_trigger.dart';
 import 'pending_damage.dart';
 
 /// 03_BATTLE_ENGINE.md §6.1: K = hpSegments. 자연 넉백은 최대 K-1회.
@@ -102,10 +103,7 @@ class DamageSystem implements BattleSystem {
     int forcedDistance,
   ) {
     if (forced) {
-      if (target.knockbackTicksLeft > 0) return; // 넉백 중 추가 적중 -> 무시
-      if (w.tick < target.forcedKbImmuneUntilTick) return; // 재적용 차단(30틱)
-      final distance = target.def.isBoss ? forcedDistance ~/ 2 : forcedDistance;
-      _startKnockback(target, distance, isForced: true);
+      triggerForcedKnockback(w, target, forcedDistance);
       return;
     }
 
