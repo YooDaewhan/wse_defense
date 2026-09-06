@@ -1,0 +1,22 @@
+{
+  "items": [
+    { "id": "ITM_GOLD", "type": "CURRENCY", "nameKey": "itm.gold" },
+    { "id": "ITM_RECRUIT_TICKET", "type": "CURRENCY", "nameKey": "itm.recruit_ticket" },
+    { "id": "ITM_COLLECT_FRAGMENT", "type": "CURRENCY", "nameKey": "itm.collect_fragment" },
+    { "id": "ITM_EXCHANGE_POINT", "type": "CURRENCY", "nameKey": "itm.exchange_point" },
+
+    { "id": "ITM_SHARD_SUN_T1", "type": "SHARD", "nameKey": "itm.shard.sun.t1", "tier": 1, "stackable": true, "maxStack": 9999 },
+    { "id": "ITM_SHARD_SUN_T2", "type": "SHARD", "nameKey": "itm.shard.sun.t2", "tier": 2, "stackable": true, "maxStack": 9999 },
+    { "id": "ITM_SHARD_SUN_T3", "type": "SHARD", "nameKey": "itm.shard.sun.t3", "tier": 3, "stackable": true, "maxStack": 9999 },
+
+    { "id": "ITM_SHARD_MOON_T1", "type": "SHARD", "nameKey": "itm.shard.moon.t1", "tier": 1, "stackable": true, "maxStack": 9999 },
+    { "id": "ITM_SHARD_MOON_T2", "type": "SHARD", "nameKey": "itm.shard.moon.t2", "tier": 2, "stackable": true, "maxStack": 9999 },
+    { "id": "ITM_SHARD_MOON_T3", "type": "SHARD", "nameKey": "itm.shard.moon.t3", "tier": 3, "stackable": true, "maxStack": 9999 },
+
+    { "id": "ITM_SHARD_FIELD_T1", "type": "SHARD", "nameKey": "itm.shard.field.t1", "tier": 1, "stackable": true, "maxStack": 9999 },
+    { "id": "ITM_SHARD_FIELD_T2", "type": "SHARD", "nameKey": "itm.shard.field.t2", "tier": 2, "stackable": true, "maxStack": 9999 },
+    { "id": "ITM_SHARD_FIELD_T3", "type": "SHARD", "nameKey": "itm.shard.field.t3", "tier": 3, "stackable": true, "maxStack": 9999 },
+
+    { "id": "ITM_AFFINITY_TREAT", "type": "MATERIAL", "nameKey": "itm.affinity_treat", "stackable": true, "maxStack": 9999 }
+  ]
+}

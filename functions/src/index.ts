@@ -6,3 +6,4 @@ export * from './inventory/equipItem';
 export * from './inventory/enhanceEquipment';
 export * from './schedule/getServerTime';
 export * from './dungeon/sweepDungeon';
+export * from './exchange/exchangeItems';

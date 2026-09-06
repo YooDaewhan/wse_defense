@@ -5,8 +5,10 @@ import '../../battle/tag/tag_registry.dart';
 import '../../battle/tag/tag_relation_rule.dart';
 
 /// 05_FRONTEND.md §3.1 `TeamTagPreview`. 02_TAG_SYSTEM.md §2.2의 FORMATION
-/// 스코프 규칙(장비 미포함 편성 화면에서는 고유 태그만, 런타임 버프 제외)
-/// 그대로 — 전투 시작 전 확정값을 미리 보여준다.
+/// 스코프 규칙(고유 태그 + 장비부여태그, 런타임 버프는 제외) 그대로 —
+/// 전투 시작 전 확정값을 미리 보여준다. T-31 당시엔 장비 시스템 자체가
+/// 없어서 `equipmentGrantsPerSlot`가 없었지만(고유 태그만 다뤘음), 규칙은
+/// 처음부터 장비 포함이었다 — T-43/T-44에서 실제로 채워 넣는다.
 class ActiveTierInfo {
   const ActiveTierInfo({required this.effectId, required this.tagId, required this.minLevel});
   final String effectId;
@@ -54,12 +56,25 @@ TeamTagPreview computeTeamTagPreview(
   List<UnitDef> formation,
   TagRegistry registry,
   List<TagEffectDef> effects,
-  List<TagRelationRule> relations,
-) {
-  // PASS 1 (§2.3): UNIT 스코프(고유 태그)만 합산 — 장비/런타임 버프 없음.
+  List<TagRelationRule> relations, {
+  List<Map<String, int>>? equipmentGrantsPerSlot,
+}) {
+  // PASS 0~1 (02_TAG_SYSTEM.md §2.2/§2.3): UNIT 스코프 = 고유 태그 +
+  // 장비부여태그(런타임 버프 제외) 합산. `equipmentGrantsPerSlot`은
+  // `formation`과 같은 길이의 슬롯별 부여 태그 맵 — 안 주면(기존 호출부)
+  // 장비가 아예 없는 것과 같다.
   final levelByIndex = <int, int>{};
-  for (final def in formation) {
+  for (var i = 0; i < formation.length; i++) {
+    final def = formation[i];
     for (final entry in def.intrinsicTags.entries) {
+      final idx = registry.indexOf(entry.key);
+      if (idx == -1) continue;
+      levelByIndex[idx] = (levelByIndex[idx] ?? 0) + entry.value;
+    }
+    final equipmentGrants = (equipmentGrantsPerSlot != null && i < equipmentGrantsPerSlot.length)
+        ? equipmentGrantsPerSlot[i]
+        : const <String, int>{};
+    for (final entry in equipmentGrants.entries) {
       final idx = registry.indexOf(entry.key);
       if (idx == -1) continue;
       levelByIndex[idx] = (levelByIndex[idx] ?? 0) + entry.value;

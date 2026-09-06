@@ -41,6 +41,18 @@ export function gameDateKey(now: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/** `weeklyCounters/{yyyy-Www}` 문서 ID — 표준 ISO-8601 주차(목요일 기준). */
+export function gameWeekKey(now: Date): string {
+  const shifted = gameDayShifted(now);
+  const d = new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7; // 0=월 ... 6=일
+  d.setUTCDate(d.getUTCDate() - dayNum + 3); // 이번 주 목요일로 이동
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const weekNum =
+    1 + Math.round(((d.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
 /** "일요일은 3종 모두 보너스 적용"이 공통 규칙이라 던전별 목록에는 넣지
  * 않는다 — dungeon_bonus.dart의 isBonusDay와 동일. */
 export function isBonusDay(weekday: number, bonusWeekdays: number[]): boolean {

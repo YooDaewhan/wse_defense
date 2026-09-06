@@ -1,0 +1,450 @@
+{
+  "upgrades": [
+    {
+      "id": "UPG_SUN_T1_T2",
+      "cost": [
+        {
+          "item": "ITM_SHARD_SUN_T1",
+          "amount": 5
+        }
+      ],
+      "gain": {
+        "type": "ITEM",
+        "id": "ITM_SHARD_SUN_T2",
+        "amount": 1
+      },
+      "limit": 0,
+      "resetPeriod": "NONE"
+    },
+    {
+      "id": "UPG_SUN_T2_T3",
+      "cost": [
+        {
+          "item": "ITM_SHARD_SUN_T2",
+          "amount": 5
+        }
+      ],
+      "gain": {
+        "type": "ITEM",
+        "id": "ITM_SHARD_SUN_T3",
+        "amount": 1
+      },
+      "limit": 0,
+      "resetPeriod": "NONE"
+    },
+    {
+      "id": "UPG_MOON_T1_T2",
+      "cost": [
+        {
+          "item": "ITM_SHARD_MOON_T1",
+          "amount": 5
+        }
+      ],
+      "gain": {
+        "type": "ITEM",
+        "id": "ITM_SHARD_MOON_T2",
+        "amount": 1
+      },
+      "limit": 0,
+      "resetPeriod": "NONE"
+    },
+    {
+      "id": "UPG_MOON_T2_T3",
+      "cost": [
+        {
+          "item": "ITM_SHARD_MOON_T2",
+          "amount": 5
+        }
+      ],
+      "gain": {
+        "type": "ITEM",
+        "id": "ITM_SHARD_MOON_T3",
+        "amount": 1
+      },
+      "limit": 0,
+      "resetPeriod": "NONE"
+    },
+    {
+      "id": "UPG_FIELD_T1_T2",
+      "cost": [
+        {
+          "item": "ITM_SHARD_FIELD_T1",
+          "amount": 5
+        }
+      ],
+      "gain": {
+        "type": "ITEM",
+        "id": "ITM_SHARD_FIELD_T2",
+        "amount": 1
+      },
+      "limit": 0,
+      "resetPeriod": "NONE"
+    },
+    {
+      "id": "UPG_FIELD_T2_T3",
+      "cost": [
+        {
+          "item": "ITM_SHARD_FIELD_T2",
+          "amount": 5
+        }
+      ],
+      "gain": {
+        "type": "ITEM",
+        "id": "ITM_SHARD_FIELD_T3",
+        "amount": 1
+      },
+      "limit": 0,
+      "resetPeriod": "NONE"
+    }
+  ],
+  "shops": [
+    {
+      "id": "SHOP_DUNGEON_SUN",
+      "nameKey": "shop.dungeon.sun",
+      "entries": [
+        {
+          "id": "EX_ANIMAL_MASK",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_ANIMAL_MASK"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE",
+          "unlock": {
+            "dungeonId": "DGN_SUN",
+            "level": 4
+          }
+        },
+        {
+          "id": "EX_EMBER_CHARM",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_EMBER_CHARM"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_BRAVE_BADGE",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_BRAVE_BADGE"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_SWIFT_BOOTS",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_SWIFT_BOOTS"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_QUICK_HANDS",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_QUICK_HANDS"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_CHEAP_WHISTLE",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_CHEAP_WHISTLE"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_ECHO_DRUM",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_ECHO_DRUM"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_SUN_GOLD_POUCH",
+          "cost": [
+            {
+              "item": "ITM_SHARD_SUN_T1",
+              "amount": 20
+            }
+          ],
+          "gain": {
+            "type": "CURRENCY",
+            "id": "ITM_GOLD",
+            "amount": 6000
+          },
+          "limit": 5,
+          "resetPeriod": "WEEKLY"
+        }
+      ]
+    },
+    {
+      "id": "SHOP_DUNGEON_MOON",
+      "nameKey": "shop.dungeon.moon",
+      "entries": [
+        {
+          "id": "EX_DEWDROP_BELL",
+          "cost": [
+            {
+              "item": "ITM_SHARD_MOON_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_DEWDROP_BELL"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE",
+          "unlock": {
+            "dungeonId": "DGN_MOON",
+            "level": 4
+          }
+        },
+        {
+          "id": "EX_HIDING_HOOD",
+          "cost": [
+            {
+              "item": "ITM_SHARD_MOON_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_HIDING_HOOD"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_LONG_SCOPE",
+          "cost": [
+            {
+              "item": "ITM_SHARD_MOON_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_LONG_SCOPE"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_WARM_BLANKET",
+          "cost": [
+            {
+              "item": "ITM_SHARD_MOON_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_WARM_BLANKET"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_SLEEP_CHARM",
+          "cost": [
+            {
+              "item": "ITM_SHARD_MOON_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_SLEEP_CHARM"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_MOON_GOLD_POUCH",
+          "cost": [
+            {
+              "item": "ITM_SHARD_MOON_T1",
+              "amount": 20
+            }
+          ],
+          "gain": {
+            "type": "CURRENCY",
+            "id": "ITM_GOLD",
+            "amount": 6000
+          },
+          "limit": 5,
+          "resetPeriod": "WEEKLY"
+        }
+      ]
+    },
+    {
+      "id": "SHOP_DUNGEON_FIELD",
+      "nameKey": "shop.dungeon.field",
+      "entries": [
+        {
+          "id": "EX_LEAF_CLOAK",
+          "cost": [
+            {
+              "item": "ITM_SHARD_FIELD_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_LEAF_CLOAK"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE",
+          "unlock": {
+            "dungeonId": "DGN_FIELD",
+            "level": 4
+          }
+        },
+        {
+          "id": "EX_ACORN_SHIELD",
+          "cost": [
+            {
+              "item": "ITM_SHARD_FIELD_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_ACORN_SHIELD"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_SHARP_TWIG",
+          "cost": [
+            {
+              "item": "ITM_SHARD_FIELD_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_SHARP_TWIG"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_HEAVY_ANCHOR",
+          "cost": [
+            {
+              "item": "ITM_SHARD_FIELD_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_HEAVY_ANCHOR"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_STONE_SKIN",
+          "cost": [
+            {
+              "item": "ITM_SHARD_FIELD_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_STONE_SKIN"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_LUCKY_CLOVER",
+          "cost": [
+            {
+              "item": "ITM_SHARD_FIELD_T3",
+              "amount": 10
+            }
+          ],
+          "gain": {
+            "type": "EQUIPMENT",
+            "id": "EQP_LUCKY_CLOVER"
+          },
+          "limit": 0,
+          "resetPeriod": "NONE"
+        },
+        {
+          "id": "EX_FIELD_GOLD_POUCH",
+          "cost": [
+            {
+              "item": "ITM_SHARD_FIELD_T1",
+              "amount": 20
+            }
+          ],
+          "gain": {
+            "type": "CURRENCY",
+            "id": "ITM_GOLD",
+            "amount": 6000
+          },
+          "limit": 5,
+          "resetPeriod": "WEEKLY"
+        }
+      ]
+    }
+  ]
+}

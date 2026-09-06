@@ -128,4 +128,24 @@ void main() {
     final preview = computeTeamTagPreview([_coward], bundle.registry, bundle.effects, bundle.relations);
     expect(preview.relationHints, isEmpty);
   });
+
+  test(
+    'T-44: 02_TAG_SYSTEM.md §2.2 "장비로 받은 태그도 UNIT 레벨에 포함" — equipmentGrantsPerSlot이 즉시 반영된다',
+    () async {
+      final bundle = await tagBundle;
+      final withoutGear = computeTeamTagPreview([_plant], bundle.registry, bundle.effects, bundle.relations);
+      expect(withoutGear.formationLevels['TAG_RACE_PLANT'], 1);
+
+      final withGear = computeTeamTagPreview(
+        [_plant],
+        bundle.registry,
+        bundle.effects,
+        bundle.relations,
+        equipmentGrantsPerSlot: [
+          {'TAG_RACE_PLANT': 1},
+        ],
+      );
+      expect(withGear.formationLevels['TAG_RACE_PLANT'], 2); // 1(고유) + 1(장비) -- 재계산은 순수 함수라 "즉시" 반영
+    },
+  );
 }
