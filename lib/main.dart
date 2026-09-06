@@ -13,15 +13,26 @@ import 'data/local/journal_repository.dart';
 import 'data/local/pending_submits_repository.dart';
 import 'data/local/settings_repository.dart';
 import 'data/local/tutorial_repository.dart';
+import 'data/remote/account_loader.dart';
 import 'data/remote/battle_submit_adapter.dart';
 import 'data/remote/battle_submit_queue.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await bootstrapFirebase();
-  await signInAnonymouslyIfNeeded();
+  final user = await signInAnonymouslyIfNeeded();
   await initHiveForApp();
   final appScope = _buildAppScope();
+  // 10_WIRING_PLAN.md T-63 준비: bootstrapAccount를 아무도 안 불러
+  // scope.account가 항상 기본값(gold 0, 캐릭터 0개)에서 시작하던 문제(T-62
+  // 조사 중 발견). 화면들이 AppScope 변경을 자동 구독하지 않아(app_scope.dart
+  // 주석) runApp 전에 채워둬야 첫 화면부터 실제 값이 보인다. 실패해도(오프라인
+  // 등) 기본값으로 시작 -- 다음 실행 때 다시 시도한다.
+  try {
+    appScope.setAccount(await loadAccountAfterBootstrap(user.uid));
+  } catch (_) {
+    // 조용히 넘어간다.
+  }
   // 10_WIRING_PLAN.md T-60: "앱이 복귀했을 때" 미제출 전투를 재시도한다.
   // runApp을 막지 않도록 기다리지 않는다(실패해도 다음 앱 시작 때 또 시도).
   unawaited(BattleSubmitQueue(store: appScope.pendingSubmits, submit: submitBattlePayloadFn(appScope)).retryPending());

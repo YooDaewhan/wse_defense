@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wse_defense/application/app_scope.dart';
 import 'package:wse_defense/presentation/screens/splash/splash_screen.dart';
-import 'package:wse_defense/presentation/widgets/placeholder_screen.dart';
 
 import '../../../support/test_app_scope.dart';
 
@@ -20,7 +19,7 @@ void main() {
       initialLocation: '/',
       routes: [
         GoRoute(path: '/', builder: (context, state) => const SplashScreen(nextRoute: '/next')),
-        GoRoute(path: '/next', builder: (context, state) => const PlaceholderScreen(title: '다음 화면')),
+        GoRoute(path: '/next', builder: (context, state) => const Scaffold(body: Text('다음 화면'))),
       ],
     );
 
