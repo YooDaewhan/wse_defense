@@ -40,7 +40,12 @@ class WeatherSystem implements BattleSystem {
 
     final previous = w.weather;
     _updateState(w, cfg);
-    if (w.weather != previous) _refreshWeatherModifiers(w, cfg);
+    if (w.weather != previous) {
+      _refreshWeatherModifiers(w, cfg);
+      // T-47: requireWeather가 걸린 태그 효과(예: 야행성은 밤에만 강화)를
+      // "상태 전이 시 모디파이어 정확히 교체" — 실제로 상태가 바뀔 때만.
+      w.tagEffectResolver.reapplyWeatherGatedEffects(w);
+    }
 
     _clearActivity(w);
   }

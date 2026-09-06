@@ -1,5 +1,6 @@
 import '../stat/modifier.dart';
 import '../stat/stat_key.dart';
+import '../world/weather_state.dart';
 import 'tag_query.dart';
 import 'tag_registry.dart';
 
@@ -51,6 +52,13 @@ StatKey _statKeyFromJson(String raw) => switch (raw) {
   'AOE_MAX_TARGETS' => StatKey.aoeMaxTargets,
   'PRAYER_GAIN_ON_KILL' => StatKey.prayerGainOnKill,
   _ => throw FormatException('알 수 없는 StatKey: $raw'),
+};
+
+WeatherState _weatherStateFromJson(String raw) => switch (raw) {
+  'CLEAR' => WeatherState.clear,
+  'DUSK' => WeatherState.dusk,
+  'NIGHT' => WeatherState.night,
+  _ => throw FormatException('알 수 없는 WeatherState: $raw'),
 };
 
 ModOp _modOpFromJson(String raw) => switch (raw) {
@@ -113,6 +121,7 @@ class TagEffectDef {
     this.perLevel = const [],
     this.tiers = const [],
     this.levelCapForEffect = 1 << 30,
+    this.requireWeather, // null이면 날씨 무관(항상 조건 통과)
   });
 
   final String id;
@@ -124,6 +133,10 @@ class TagEffectDef {
   final List<StatModDef> perLevel;
   final List<TagEffectTier> tiers;
   final int levelCapForEffect;
+
+  /// 04_DATA_SCHEMA.md §3 `requireWeather` (M2): 이 목록에 현재 날씨가
+  /// 없으면 이 효과는 (레벨/타겟 조건과 무관하게) 통째로 비활성.
+  final List<WeatherState>? requireWeather;
 
   /// [registry]로 `tag` 문자열을 인덱스로, `target`의 태그 참조들을 해석한다.
   factory TagEffectDef.fromJson(
@@ -147,6 +160,9 @@ class TagEffectDef {
           TagEffectTier.fromJson(t as Map<String, Object?>),
       ],
       levelCapForEffect: json['levelCapForEffect'] as int? ?? 1 << 30,
+      requireWeather: (json['requireWeather'] as List<Object?>?)
+          ?.map((w) => _weatherStateFromJson(w as String))
+          .toList(),
     );
   }
 

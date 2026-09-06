@@ -35,7 +35,7 @@ class TagEffectResolver {
   /// 유닛 소환 시 1회.
   void resolveUnitOnSpawn(BattleEntity e, BattleWorld w) {
     _rebuildUnitTagStack(e);
-    _reapplyUnitScopeEffects(e);
+    _reapplyUnitScopeEffects(e, w);
     _reapplyFormationScopeEffects(e, w);
     // FIELD 스코프는 다음 resolveField() 주기에 자동 반영된다.
   }
@@ -44,8 +44,23 @@ class TagEffectResolver {
   /// 재평가한다 — FORMATION은 절대 안 변하고, FIELD는 다음 주기부터.
   void onUnitTagsChanged(BattleWorld w, BattleEntity e) {
     _rebuildUnitTagStack(e);
-    _reapplyUnitScopeEffects(e);
+    _reapplyUnitScopeEffects(e, w);
     SkillTriggerRunner.onTagsChanged(w, e);
+  }
+
+  /// 04_DATA_SCHEMA.md §3 `requireWeather`(T-47): 태그 스택은 그대로인데
+  /// "조건"만(날씨) 바뀐 경우라 `onUnitTagsChanged`와 달리 태그 스택을
+  /// 다시 만들 필요는 없다 — WeatherSystem이 상태가 실제로 전이했을 때만
+  /// 부른다. UNIT/FORMATION 스코프를 살아있는 모든 유닛에 대해 재평가한다
+  /// (requireWeather가 없는 효과도 같이 재평가되지만 멱등이라 무해하다 —
+  /// "상태 전이 시 모디파이어 정확히 교체"의 핵심은 requireWeather가 있는
+  /// 것들이 정확히 켜지고/꺼지는 것).
+  void reapplyWeatherGatedEffects(BattleWorld w) {
+    for (final e in w.entities.ordered) {
+      if (!e.isAlive) continue;
+      _reapplyUnitScopeEffects(e, w);
+      _reapplyFormationScopeEffects(e, w);
+    }
   }
 
   /// FIELD_SAMPLE_TICKS(60틱=2초)마다 TagResolveSystem이 호출한다.
@@ -70,7 +85,7 @@ class TagEffectResolver {
       if (e.side != side || !e.isAlive) continue;
       for (final def in effects) {
         if (def.scope != TagScope.field) continue;
-        if (!_targetMatches(def, e)) {
+        if (!_targetMatches(def, e) || !_weatherMatches(def, w)) {
           e.stats.removeBySource(ModifierKind.tagField, def.id);
           continue;
         }
@@ -83,10 +98,10 @@ class TagEffectResolver {
     e.tags = registry.buildStack(e.tagContribs);
   }
 
-  void _reapplyUnitScopeEffects(BattleEntity e) {
+  void _reapplyUnitScopeEffects(BattleEntity e, BattleWorld w) {
     for (final def in effects) {
       if (def.scope != TagScope.unit) continue;
-      if (!_targetMatches(def, e)) {
+      if (!_targetMatches(def, e) || !_weatherMatches(def, w)) {
         e.stats.removeBySource(ModifierKind.tagUnit, def.id);
         continue;
       }
@@ -97,7 +112,7 @@ class TagEffectResolver {
   void _reapplyFormationScopeEffects(BattleEntity e, BattleWorld w) {
     for (final def in effects) {
       if (def.scope != TagScope.formation) continue;
-      if (!_targetMatches(def, e)) {
+      if (!_targetMatches(def, e) || !_weatherMatches(def, w)) {
         e.stats.removeBySource(ModifierKind.tagFormation, def.id);
         continue;
       }
@@ -107,6 +122,10 @@ class TagEffectResolver {
 
   bool _targetMatches(TagEffectDef def, BattleEntity e) =>
       def.target == null || def.target!.matches(e, e);
+
+  /// 04_DATA_SCHEMA.md §3 `requireWeather`(T-47): 없으면 항상 통과.
+  bool _weatherMatches(TagEffectDef def, BattleWorld w) =>
+      def.requireWeather == null || def.requireWeather!.contains(w.weather);
 
   void _applyToEntity(BattleEntity e, TagEffectDef def, int level) {
     final kind = switch (def.scope) {
