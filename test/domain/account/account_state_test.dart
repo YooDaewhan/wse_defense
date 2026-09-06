@@ -33,4 +33,11 @@ void main() {
     expect(result.exchangePoint, 5); // 안 건드림
     expect(result.bondLevel, 2); // growth 자체가 없음 -> 그대로
   });
+
+  test('withOwnedCharacters adds new ids without dropping existing ones', () {
+    final withFirst = _account.withOwnedCharacters(['CHR_A']);
+    final withSecond = withFirst.withOwnedCharacters(['CHR_B', 'CHR_A']); // 중복 재추가
+
+    expect(withSecond.ownedCharacterIds, {'CHR_A', 'CHR_B'});
+  });
 }

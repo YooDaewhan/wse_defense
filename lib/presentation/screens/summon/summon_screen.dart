@@ -13,6 +13,7 @@ class SummonScreen extends StatelessWidget {
     required this.exchangePoint,
     required this.onPull,
     required this.onTrialTap,
+    required this.onExchangePickup,
   });
 
   final BannerCatalog catalog;
@@ -27,6 +28,10 @@ class SummonScreen extends StatelessWidget {
 
   /// 09_MILESTONES.md T-51 `/summon/trial/:id` 진입 -- 픽업 캐릭터 하나를 넘긴다.
   final void Function(String characterId) onTrialTap;
+
+  /// 09_MILESTONES.md T-49 `exchangePickup` -- 교환 포인트로 지정 캐릭터
+  /// 하나를 선택 획득한다(banner.exchangeTargets 중 하나).
+  final void Function(BannerDef banner, String characterId) onExchangePickup;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +55,7 @@ class SummonScreen extends StatelessWidget {
                 exchangePoint: exchangePoint,
                 onPull: (count) => onPull(banner, count),
                 onTrialTap: onTrialTap,
+                onExchangePickup: (characterId) => onExchangePickup(banner, characterId),
               ),
           ],
         ),
@@ -66,6 +72,7 @@ class _BannerView extends StatelessWidget {
     required this.exchangePoint,
     required this.onPull,
     required this.onTrialTap,
+    required this.onExchangePickup,
   });
 
   final BannerDef banner;
@@ -74,6 +81,7 @@ class _BannerView extends StatelessWidget {
   final int exchangePoint;
   final void Function(int count) onPull;
   final void Function(String characterId) onTrialTap;
+  final void Function(String characterId) onExchangePickup;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +93,18 @@ class _BannerView extends StatelessWidget {
           Text(
             '교환 포인트 $exchangePoint / ${exchange.requiredPoints}',
             key: ValueKey('summon_exchange_progress_${banner.id}'),
+          ),
+        if (banner.givesExchangePoint && banner.exchangeTargets.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final characterId in banner.exchangeTargets)
+                ElevatedButton(
+                  key: ValueKey('summon_exchange_pickup_${banner.id}_$characterId'),
+                  onPressed: exchangePoint >= exchange.requiredPoints ? () => onExchangePickup(characterId) : null,
+                  child: Text('$characterId 선택 교환'),
+                ),
+            ],
           ),
         for (var i = 0; i < banner.rates.length; i++)
           _RateRow(banner: banner, rate: banner.rates[i], index: i, onTrialTap: onTrialTap),

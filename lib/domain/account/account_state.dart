@@ -59,4 +59,9 @@ extension AccountPatchApplication on AccountState {
       campLevel: (growth?['campDefenseLevel'] as num?)?.toInt() ?? campLevel,
     );
   }
+
+  /// 소환(gachaPull)/교환 픽업(exchangePickup)으로 새로 얻은 캐릭터를
+  /// 보유 목록에 더한다 — 이미 있는 id는 Set이라 자연히 중복 없이 유지된다.
+  AccountState withOwnedCharacters(Iterable<String> newIds) =>
+      copyWith(ownedCharacterIds: {...ownedCharacterIds, ...newIds});
 }

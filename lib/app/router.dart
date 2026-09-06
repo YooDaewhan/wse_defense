@@ -14,6 +14,7 @@ import '../battle/world/input_log.dart';
 import '../data/remote/api.dart';
 import '../data/remote/battle_submit_adapter.dart';
 import '../data/remote/battle_submit_queue.dart';
+import '../domain/account/account_state.dart';
 import '../domain/battle/battle_submission.dart';
 import '../domain/battle/battle_world_builder.dart';
 import '../domain/dungeon/dungeon_def.dart';
@@ -218,8 +219,8 @@ GoRouter buildAppRouter() => GoRouter(
           heldItems: extra?.heldItems ?? const {},
           formationTagLevels: extra?.formationTagLevels ?? const {},
           registry: scope.tagBundle?.registry ?? TagRegistry(const []),
-          onExchange: (entry) {},
-          onUpgrade: (upgrade) {},
+          onExchange: (entry) => _exchangeItem(context, scope, entry.id),
+          onUpgrade: (upgrade) => _exchangeItem(context, scope, upgrade.id),
         );
       },
     ),
@@ -238,17 +239,22 @@ GoRouter buildAppRouter() => GoRouter(
               const BannerCatalog(banners: [], exchange: GachaExchangeRule(pointPerPull: 1, requiredPoints: 200)),
           heldItems: extra?.heldItems ?? const {},
           exchangePoint: scope.account.exchangePoint,
-          onPull: (banner, count) {},
+          onPull: (banner, count) => _pullGacha(context, scope, banner, count),
           onTrialTap: (characterId) => context.push('/summon/trial/$characterId'),
+          onExchangePickup: (banner, characterId) => _exchangePickup(context, scope, banner.id, characterId),
         );
       },
       routes: [
         GoRoute(
           path: 'trial/:id',
-          builder: (context, state) => TrialScreen(
-            characterId: state.pathParameters['id'] ?? '',
-            onStartTrial: () {},
-          ),
+          builder: (context, state) {
+            final scope = AppScopeProvider.of(context);
+            final characterId = state.pathParameters['id'] ?? '';
+            return TrialScreen(
+              characterId: characterId,
+              onStartTrial: () => _startTrial(context, scope, characterId),
+            );
+          },
         ),
       ],
     ),
@@ -288,14 +294,26 @@ BattleResultSummary _demoBattleResult() => const BattleResultSummary(
   kills: 0,
 );
 
+/// 매 호출마다 새 멱등키를 붙인 [RequestMeta] -- 여러 콜백이 반복
+/// 타이핑하지 않도록 한 곳에 모은다. `appVersion`은 T-59와 같은 이유로
+/// 아직 고정값이다(api.dart의 kDataVersion 주석 참고).
+RequestMeta _newMeta() =>
+    RequestMeta(idempotencyKey: newIdempotencyKey(), appVersion: '1.0.0', dataVersion: kDataVersion);
+
+/// `ApiException`을 사용자가 읽을 수 있는 스낵바로 정리한다 -- [action]은
+/// "출격"/"소환"처럼 실패한 동작 이름.
+void _showApiError(BuildContext context, String action, ApiException e) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$action 실패 (${e.code.name})')));
+}
+
 /// "편성 서버 동기화": `startBattle`이 실제로 읽는 건 로컬 Hive가 아니라
 /// 이 서버 문서다(functions/src/battle/saveFormation.ts). 실패해도(오프라인
 /// 등) 로컬 편집은 이미 끝난 뒤라 사용자를 막지 않는다 -- 그 시점에
-/// 출격을 시도하면 `_deployToStage`의 오류 처리가 대신 알려준다.
+/// 출격을 시도하면 `_startBattleFlow`의 오류 처리가 대신 알려준다.
 Future<void> _syncFormationToServer(int presetIndex, List<String?> slots) async {
   try {
     await saveFormation(
-      RequestMeta(idempotencyKey: newIdempotencyKey(), appVersion: '1.0.0', dataVersion: kDataVersion),
+      _newMeta(),
       presetIndex: presetIndex,
       slots: [for (final characterId in slots) {'characterId': characterId, 'equipmentInstanceId': null}],
     );
@@ -304,15 +322,27 @@ Future<void> _syncFormationToServer(int presetIndex, List<String?> slots) async 
   }
 }
 
-/// 10_WIRING_PLAN.md T-60 "출격": `startBattle`을 부르고, 서버가 확정한
-/// 시드·편성으로 실제 `BattleWorld`를 만들어 `/battle`로 넘어간다.
-Future<void> _deployToStage(BuildContext context, AppScope scope, StageDef stage, Datapack datapack) async {
+/// 10_WIRING_PLAN.md T-60 "출격" / T-61 "체험전": `startBattle`을 부르고,
+/// 서버가 확정한 시드·편성으로 실제 `BattleWorld`를 만들어 `/battle`로
+/// 넘어간다. STORY(본편 출격)와 TRIAL(체험전)이 [mode]만 다르고 나머지
+/// 배선은 동일해 하나로 합쳤다 -- TRIAL의 단일 슬롯 편성도
+/// [buildBattleWorldFromStart]가 그대로 처리한다.
+Future<void> _startBattleFlow(
+  BuildContext context,
+  AppScope scope, {
+  required String mode,
+  required StageDef stage,
+  required Datapack datapack,
+  int presetIndex = 0,
+  String? trialCharacterId,
+}) async {
   try {
     final res = await startBattle(
-      RequestMeta(idempotencyKey: newIdempotencyKey(), appVersion: '1.0.0', dataVersion: kDataVersion),
-      mode: 'STORY',
+      _newMeta(),
+      mode: mode,
       stageId: stage.id,
-      presetIndex: 0,
+      presetIndex: presetIndex,
+      trialCharacterId: trialCharacterId,
     );
     final snapshot = Map<String, dynamic>.from(res['formationSnapshot'] as Map);
     final formationSlots = [
@@ -340,7 +370,89 @@ Future<void> _deployToStage(BuildContext context, AppScope scope, StageDef stage
     );
   } on ApiException catch (e) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('출격 실패 (${e.code.name})')));
+    _showApiError(context, mode == 'TRIAL' ? '체험전' : '출격', e);
+  }
+}
+
+Future<void> _deployToStage(BuildContext context, AppScope scope, StageDef stage, Datapack datapack) =>
+    _startBattleFlow(context, scope, mode: 'STORY', stage: stage, datapack: datapack);
+
+/// 09_MILESTONES.md T-51 체험전: `datapack`의 스테이지 중 인덱스가 가장
+/// 낮은 하나를 그대로 빌려 쓴다(TRIAL은 stageId를 시간 제한/만료 계산에만
+/// 쓰고 소유 검증은 건너뛰므로 어떤 스테이지든 무방하다 -- startBattle.ts
+/// trialFormationSnapshot 참고).
+Future<void> _startTrial(BuildContext context, AppScope scope, String characterId) async {
+  final datapack = scope.datapack;
+  final stages = datapack?.stages.values.toList() ?? const [];
+  if (datapack == null || stages.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('체험전 실패 (스테이지 데이터 없음)')));
+    return;
+  }
+  stages.sort((a, b) => a.index.compareTo(b.index));
+  await _startBattleFlow(
+    context,
+    scope,
+    mode: 'TRIAL',
+    stage: stages.first,
+    datapack: datapack,
+    trialCharacterId: characterId,
+  );
+}
+
+/// 10_WIRING_PLAN.md T-61 소환: 10연 등 `gachaPull` 후 신규 캐릭터를
+/// 보유 목록에 더하고 교환 포인트를 갱신한다.
+Future<void> _pullGacha(BuildContext context, AppScope scope, BannerDef banner, int count) async {
+  try {
+    final res = await gachaPull(_newMeta(), bannerId: banner.id, count: count);
+    final results = (res['results'] as List).map((e) => Map<String, dynamic>.from(e as Map));
+    final newIds = [for (final r in results) if (r['isNew'] == true) r['characterId'] as String];
+    scope.setAccount(
+      scope.account
+          .applyPatch({
+            'currency': {'exchangePoint': res['exchangePointAfter']},
+          })
+          .withOwnedCharacters(newIds),
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('소환 완료 (신규 ${newIds.length}개)')));
+  } on ApiException catch (e) {
+    if (!context.mounted) return;
+    _showApiError(context, '소환', e);
+  }
+}
+
+/// 10_WIRING_PLAN.md T-61 교환 포인트 선택 교환: `exchangePickup`으로
+/// 지정 캐릭터를 획득하고 포인트를 갱신한다.
+Future<void> _exchangePickup(BuildContext context, AppScope scope, String bannerId, String characterId) async {
+  try {
+    final res = await exchangePickup(_newMeta(), bannerId: bannerId, characterId: characterId);
+    scope.setAccount(
+      scope.account
+          .applyPatch({
+            'currency': {'exchangePoint': res['exchangePointAfter']},
+          })
+          .withOwnedCharacters([characterId]),
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$characterId 획득')));
+  } on ApiException catch (e) {
+    if (!context.mounted) return;
+    _showApiError(context, '교환', e);
+  }
+}
+
+/// 10_WIRING_PLAN.md T-61 교환소: `/exchange`의 교환(onExchange)과 승급
+/// 재료 교환(onUpgrade) 둘 다 서버 `exchangeItems`를 같은 방식으로 부른다
+/// -- 둘 다 entryId 하나와 그 결과 patch만 다룬다.
+Future<void> _exchangeItem(BuildContext context, AppScope scope, String entryId) async {
+  try {
+    final res = await exchangeItems(_newMeta(), entryId: entryId);
+    scope.setAccount(scope.account.applyPatch(res['patch'] as Map<String, dynamic>?));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('교환 완료')));
+  } on ApiException catch (e) {
+    if (!context.mounted) return;
+    _showApiError(context, '교환', e);
   }
 }
 
@@ -373,9 +485,7 @@ Future<void> _submitBattleAndShowResult(
   final checksum = computeBattleChecksum(inputLogBase64: inputLogBase64, seed: seed, formationHash: formationHash);
 
   final payload = <String, dynamic>{
-    'idempotencyKey': newIdempotencyKey(),
-    'appVersion': '1.0.0',
-    'dataVersion': kDataVersion,
+    ..._newMeta().toJson(),
     'battleId': battleId,
     'outcome': battleOutcomeCode(outcome),
     'summary': {...summary, 'checksum': checksum},

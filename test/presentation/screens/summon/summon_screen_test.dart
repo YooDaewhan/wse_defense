@@ -57,6 +57,7 @@ void main() {
           exchangePoint: 0,
           onPull: (banner, count) {},
           onTrialTap: (characterId) {},
+          onExchangePickup: (banner, characterId) {},
         ),
       ),
     );
@@ -77,6 +78,7 @@ void main() {
           exchangePoint: 0,
           onPull: (banner, count) {},
           onTrialTap: (characterId) {},
+          onExchangePickup: (banner, characterId) {},
         ),
       ),
     );
@@ -97,6 +99,7 @@ void main() {
           exchangePoint: 40,
           onPull: (banner, count) {},
           onTrialTap: (characterId) {},
+          onExchangePickup: (banner, characterId) {},
         ),
       ),
     );
@@ -126,6 +129,7 @@ void main() {
             pulledCount = count;
           },
           onTrialTap: (characterId) {},
+          onExchangePickup: (banner, characterId) {},
         ),
       ),
     );
@@ -150,6 +154,7 @@ void main() {
           exchangePoint: 0,
           onPull: (banner, count) {},
           onTrialTap: (characterId) => tappedCharacterId = characterId,
+          onExchangePickup: (banner, characterId) {},
         ),
       ),
     );
@@ -162,5 +167,61 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tappedCharacterId, 'CHR_PICKUP');
+  });
+
+  group('exchange pickup (교환 포인트 선택 교환)', () {
+    testWidgets('the pickup button is disabled below the required points', (tester) async {
+      _useTallSurface(tester);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SummonScreen(
+            catalog: _catalog,
+            heldItems: const {},
+            exchangePoint: 199,
+            onPull: (banner, count) {},
+            onTrialTap: (characterId) {},
+            onExchangePickup: (banner, characterId) {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summon_tab_BNR_THEME_BEAR')));
+      await tester.pumpAndSettle();
+
+      final button = tester.widget<ElevatedButton>(find.byKey(const ValueKey('summon_exchange_pickup_BNR_THEME_BEAR_CHR_BEAR')));
+      expect(button.onPressed, isNull);
+    });
+
+    testWidgets('tapping the pickup button at the required points reports the banner and character', (tester) async {
+      _useTallSurface(tester);
+      BannerDef? pickedBanner;
+      String? pickedCharacterId;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SummonScreen(
+            catalog: _catalog,
+            heldItems: const {},
+            exchangePoint: 200,
+            onPull: (banner, count) {},
+            onTrialTap: (characterId) {},
+            onExchangePickup: (banner, characterId) {
+              pickedBanner = banner;
+              pickedCharacterId = characterId;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('summon_tab_BNR_THEME_BEAR')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('summon_exchange_pickup_BNR_THEME_BEAR_CHR_BEAR')));
+      await tester.pumpAndSettle();
+
+      expect(pickedBanner?.id, 'BNR_THEME_BEAR');
+      expect(pickedCharacterId, 'CHR_BEAR');
+    });
   });
 }
