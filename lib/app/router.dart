@@ -17,6 +17,7 @@ import '../data/remote/battle_submit_queue.dart';
 import '../domain/account/account_state.dart';
 import '../domain/battle/battle_submission.dart';
 import '../domain/battle/battle_world_builder.dart';
+import '../domain/dungeon/dungeon_bonus.dart';
 import '../domain/dungeon/dungeon_def.dart';
 import '../domain/dungeon/dungeon_progress.dart';
 import '../domain/exchange/exchange_def.dart';
@@ -199,12 +200,28 @@ GoRouter buildAppRouter() => GoRouter(
                   int gameDayWeekday,
                   int remainingRuns,
                 })?;
-        return DungeonScreen(
-          config: scope.dungeonConfig ?? const DungeonConfig(dailyRunLimit: 6),
-          progress: extra?.progress ?? const DungeonProgressSnapshot(),
-          gameDayWeekday: extra?.gameDayWeekday ?? 1,
-          remainingRuns: extra?.remainingRuns ?? 6,
-          onDifficultyTap: (dungeon, difficulty) {},
+        // 10_WIRING_PLAN.md T-62: 요일 보너스는 로컬 시계가 아니라 서버
+        // 시각 기준이어야 한다(dungeon_bonus.dart 주석) -- extra로 이미
+        // 받은 값이 있으면(딥링크 등) 그걸 우선한다.
+        //
+        // 남은 입장 횟수(remainingRuns)/해금 진행도(progress)는 서버의
+        // dailyCounters·progress 문서를 읽어올 Callable이 아직 없어(계정
+        // 상태를 서버에서 불러오는 통로 자체가 없음 -- bootstrapAccount도
+        // 어디서도 호출되지 않는다) 여전히 폴백에 머문다. 별도 후속 작업
+        // 필요.
+        return FutureBuilder<DateTime>(
+          future: extra?.gameDayWeekday == null ? getServerTime() : null,
+          builder: (context, snapshot) {
+            final gameDayWeekday =
+                extra?.gameDayWeekday ?? (snapshot.data == null ? 1 : gameDayWeekdayOf(snapshot.data!, dailyResetHourUtc));
+            return DungeonScreen(
+              config: scope.dungeonConfig ?? const DungeonConfig(dailyRunLimit: 6),
+              progress: extra?.progress ?? const DungeonProgressSnapshot(),
+              gameDayWeekday: gameDayWeekday,
+              remainingRuns: extra?.remainingRuns ?? 6,
+              onDifficultyTap: (dungeon, difficulty) => _startDungeonBattle(context, scope, difficulty),
+            );
+          },
         );
       },
     ),
@@ -397,6 +414,21 @@ Future<void> _startTrial(BuildContext context, AppScope scope, String characterI
     datapack: datapack,
     trialCharacterId: characterId,
   );
+}
+
+/// 10_WIRING_PLAN.md T-62 요일던전: 난이도를 탭하면 그 `stageId`로
+/// `startBattle(mode: 'DUNGEON')`을 부른다. 던전 스테이지(STG_DGN_*)는
+/// 아직 클라이언트 datapack에 StageDef가 없어(에셋 콘텐츠 자체가 없음)
+/// 전투를 실제로 지을 수 없는 경우가 있다 -- 그때는 크래시 대신 안내만
+/// 한다(_startTrial의 스테이지 없음 처리와 동일한 이유).
+Future<void> _startDungeonBattle(BuildContext context, AppScope scope, DungeonDifficultyDef difficulty) async {
+  final datapack = scope.datapack;
+  final stage = datapack?.stages[difficulty.stageId];
+  if (datapack == null || stage == null) {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('던전 실패 (스테이지 데이터 없음)')));
+    return;
+  }
+  await _startBattleFlow(context, scope, mode: 'DUNGEON', stage: stage, datapack: datapack);
 }
 
 /// 10_WIRING_PLAN.md T-61 소환: 10연 등 `gachaPull` 후 신규 캐릭터를

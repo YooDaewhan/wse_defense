@@ -7,6 +7,12 @@
 /// "일요일은 3종 모두 보너스 적용"이 일반 규칙이라 던전별 `bonusWeekdays`
 /// 목록에는 일요일을 넣지 않는다(모든 던전에 중복되므로) — 여기서 한 번만
 /// 처리한다.
+/// functions/src/schedule/gameDay.ts의 `DAILY_RESET_HOUR_UTC` 사본 --
+/// 운영 설정(`serverState/schedule.dailyResetHourUtc`)을 아직 시드하지
+/// 않아 서버도 이 상수를 그대로 쓴다. 서버가 그 문서를 실제로 읽기
+/// 시작하면 이 값도 같이 서버에서 받아오도록 바꿔야 한다.
+const dailyResetHourUtc = 20;
+
 bool isBonusDay(int gameDayWeekday, List<int> bonusWeekdays) {
   return gameDayWeekday == 7 || bonusWeekdays.contains(gameDayWeekday);
 }
