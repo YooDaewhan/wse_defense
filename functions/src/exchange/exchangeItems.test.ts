@@ -118,3 +118,18 @@ test('rejects an unknown entryId', async () => {
   const uid = 'exch-user-9';
   await expect(exchangeItemsHandler(req(uid, 'EX_NOT_REAL'))).rejects.toThrow();
 });
+
+/** 09_MILESTONES.md T-55: 이벤트 전용 상점(SHOP_EVENT_DEMO)도 일반
+ * 상점과 똑같이 동작한다 -- eventData.ts EVT_DEMO는 기간 무제한이라 항상
+ * 열려 있고, 닫힌 이벤트 거부는 eventData.test.ts의 isEventOpen 단위
+ * 테스트로 확인한다. */
+test('T-55: an event-shop entry works like any other exchange entry while the event is open', async () => {
+  const uid = 'exch-user-10';
+  await seedItem(uid, 'ITM_EVENT_TOKEN', 10);
+
+  const res = await exchangeItemsHandler(req(uid, 'EX_EVENT_TOKEN_GOLD'));
+
+  expect(res.granted).toEqual([{ item: 'ITM_GOLD', amount: 500 }]);
+  const account = await db.doc(`users/${uid}`).get();
+  expect(account.data()?.currency.gold).toBe(500);
+});

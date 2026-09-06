@@ -17,6 +17,8 @@
     { "id": "ITM_SHARD_FIELD_T2", "type": "SHARD", "nameKey": "itm.shard.field.t2", "tier": 2, "stackable": true, "maxStack": 9999 },
     { "id": "ITM_SHARD_FIELD_T3", "type": "SHARD", "nameKey": "itm.shard.field.t3", "tier": 3, "stackable": true, "maxStack": 9999 },
 
-    { "id": "ITM_AFFINITY_TREAT", "type": "MATERIAL", "nameKey": "itm.affinity_treat", "stackable": true, "maxStack": 9999 }
+    { "id": "ITM_AFFINITY_TREAT", "type": "MATERIAL", "nameKey": "itm.affinity_treat", "stackable": true, "maxStack": 9999 },
+
+    { "id": "ITM_EVENT_TOKEN", "type": "MATERIAL", "nameKey": "itm.event_token", "stackable": true, "maxStack": 9999 }
   ]
 }

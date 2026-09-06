@@ -42,6 +42,13 @@ export async function seedPuzzleStageMeta(): Promise<void> {
   await db.doc(`stagesMeta/${PUZZLE_STAGE_ID}`).set({ ...testStageMeta, firstRewards: [], repeatRewards: [] });
 }
 
+/** eventData.ts EVT_DEMO의 첫 스테이지. */
+export const TEST_EVENT_STAGE_ID = 'STG_EVENT_DEMO_1';
+
+export async function seedEventStageMeta(): Promise<void> {
+  await db.doc(`stagesMeta/${TEST_EVENT_STAGE_ID}`).set({ ...testStageMeta, firstRewards: [], repeatRewards: [] });
+}
+
 /** deepForestData.ts의 STG_DEEPFOREST_1(제한 없음)/STG_DEEPFOREST_3
  * (TAG_RACE_ANIMAL 2 이상)와 짝을 맞춘 stagesMeta. */
 export async function seedDeepForestStageMeta(stageId: string): Promise<void> {

@@ -4,9 +4,15 @@ import { requireAuth } from '../common/auth';
 import { withIdempotency } from '../common/idempotency';
 import { applyReward } from '../common/rewards';
 import { AccountPatch, BaseRequest, Delta } from '../common/types';
+import { EVENTS_BY_SHOP_ID, isEventOpen } from '../event/eventData';
 import { gameDateKey, gameWeekKey, nextGameDayResetMs } from '../schedule/gameDay';
 import { CURRENCY_ITEM_FIELD } from '../common/currency';
-import { ENTRIES_BY_ID, ExchangeEntry } from './exchangeData';
+import { ENTRIES_BY_ID, ExchangeEntry, SHOPS } from './exchangeData';
+
+/** entryId가 속한 Shop.id -- 이벤트 소속 상점인지 확인할 때만 쓴다. */
+const SHOP_ID_OF_ENTRY: Record<string, string> = Object.fromEntries(
+  SHOPS.flatMap((shop) => shop.entries.map((entry) => [entry.id, shop.id])),
+);
 
 export interface ExchangeItemsReq extends BaseRequest {
   entryId: string;
@@ -67,6 +73,14 @@ export async function exchangeItemsHandler(request: CallableRequest<ExchangeItem
 
   const entry = ENTRIES_BY_ID[entryId];
   if (!entry) throw new HttpsError('not-found', 'VALIDATION_FAILED');
+
+  // 09_MILESTONES.md T-55 "기간 종료 처리" -- 이벤트 전용 상점(교환소)은
+  // 그 이벤트가 끝나면 더 이상 교환할 수 없다.
+  const shopId = SHOP_ID_OF_ENTRY[entryId];
+  const event = shopId ? EVENTS_BY_SHOP_ID[shopId] : undefined;
+  if (event && !isEventOpen(event, Date.now())) {
+    throw new HttpsError('failed-precondition', 'BANNER_CLOSED');
+  }
 
   return withIdempotency<ExchangeItemsRes>(uid, request.data.idempotencyKey, 'exchangeItems', async (tx) => {
     const now = new Date();

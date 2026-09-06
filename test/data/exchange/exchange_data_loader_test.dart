@@ -13,7 +13,10 @@ void main() {
       'UPG_FIELD_T1_T2', 'UPG_FIELD_T2_T3',
     });
 
-    expect(config.shops.map((s) => s.id).toSet(), {'SHOP_DUNGEON_SUN', 'SHOP_DUNGEON_MOON', 'SHOP_DUNGEON_FIELD'});
+    expect(config.shops.map((s) => s.id).toSet(), {
+      'SHOP_DUNGEON_SUN', 'SHOP_DUNGEON_MOON', 'SHOP_DUNGEON_FIELD',
+      'SHOP_EVENT_DEMO', // T-55: 이벤트 템플릿 전용 교환소
+    });
 
     final sunShop = config.shops.firstWhere((s) => s.id == 'SHOP_DUNGEON_SUN');
     final maskEntry = sunShop.entries.firstWhere((e) => e.gain.id == 'EQP_ANIMAL_MASK');

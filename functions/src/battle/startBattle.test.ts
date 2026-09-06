@@ -7,12 +7,14 @@ import {
   fakeAuthedRequest,
   seedDeepForestStageMeta,
   seedDungeonStageMeta,
+  seedEventStageMeta,
   seedOwnedAnimalFormation,
   seedOwnedFormation,
   seedPuzzleStageMeta,
   seedStageMeta,
   TEST_DATA_VERSION,
   TEST_DUNGEON_STAGE_ID,
+  TEST_EVENT_STAGE_ID,
   TEST_STAGE_ID,
 } from './testSupport';
 
@@ -188,4 +190,29 @@ test('T-53: rejects a PUZZLE battle for any stageId other than the designated we
   await expect(
     startBattleHandler(fakeAuthedRequest(uid, req({ mode: 'PUZZLE', stageId: TEST_STAGE_ID }))),
   ).rejects.toThrow(/VALIDATION_FAILED/);
+});
+
+/** 09_MILESTONES.md T-55 완료조건: "10스테이지 + 교환소 + 기간 종료
+ * 처리를 데이터만으로 구성" -- EVENT 모드는 본편과 같은 소유 편성을 쓰고
+ * (지정 편성 아님), eventData.ts의 스테이지 목록·기간만 새로 확인한다. */
+test('T-55: starts an EVENT battle for a stage that belongs to the event template', async () => {
+  await seedEventStageMeta();
+  const uid = 'start-user-14';
+  await seedOwnedFormation(uid);
+
+  const res = await startBattleHandler(
+    fakeAuthedRequest(uid, req({ mode: 'EVENT', stageId: TEST_EVENT_STAGE_ID })),
+  );
+
+  expect(res.battleId).toBeTruthy();
+});
+
+test('T-55: rejects an EVENT battle for a stageId outside the event template', async () => {
+  await seedStageMeta();
+  const uid = 'start-user-15';
+  await seedOwnedFormation(uid);
+
+  await expect(
+    startBattleHandler(fakeAuthedRequest(uid, req({ mode: 'EVENT', stageId: TEST_STAGE_ID }))),
+  ).rejects.toThrow(/BANNER_CLOSED/);
 });

@@ -484,6 +484,27 @@ export const SHOPS: Shop[] = [
         "resetPeriod": "WEEKLY"
       }
     ]
+  },
+  {
+    "id": "SHOP_EVENT_DEMO",
+    "entries": [
+      {
+        "id": "EX_EVENT_TOKEN_GOLD",
+        "cost": [
+          {
+            "item": "ITM_EVENT_TOKEN",
+            "amount": 10
+          }
+        ],
+        "gain": {
+          "type": "CURRENCY",
+          "id": "ITM_GOLD",
+          "amount": 500
+        },
+        "limit": 5,
+        "resetPeriod": "EVENT"
+      }
+    ]
   }
 ];
 

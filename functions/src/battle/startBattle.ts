@@ -4,6 +4,7 @@ import { db } from '../common/admin';
 import { requireAuth } from '../common/auth';
 import { DEEP_FOREST_FLOORS_BY_STAGE } from '../dungeon/deepForestData';
 import { DAILY_RUN_LIMIT } from '../dungeon/dungeonData';
+import { EVENTS_BY_STAGE_ID, isEventOpen } from '../event/eventData';
 import { BANNERS } from '../gacha/bannerData';
 import { isActivePickupCharacter } from '../gacha/pickupWindow';
 import { gameDateKey } from '../schedule/gameDay';
@@ -118,6 +119,17 @@ export async function startBattleHandler(request: CallableRequest<StartBattleReq
   // stageId에 지정 편성(소유 검증 우회)을 얹는 걸 막는다.
   if (mode === 'PUZZLE' && stageId !== PUZZLE_STAGE_ID) {
     throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
+  }
+
+  // 09_MILESTONES.md T-55 "기간 종료 처리" -- 이벤트 스테이지는 그
+  // stageId가 실제로 이 이벤트 소속이어야 하고, 이벤트 기간 안이어야
+  // 한다. 편성은 본편과 같은 소유 검증(loadFormationSnapshot)을 그대로
+  // 쓴다.
+  if (mode === 'EVENT') {
+    const event = EVENTS_BY_STAGE_ID[stageId];
+    if (!event || !isEventOpen(event, Date.now())) {
+      throw new HttpsError('failed-precondition', 'BANNER_CLOSED');
+    }
   }
 
   const formationSnapshot =
