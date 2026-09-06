@@ -10,6 +10,9 @@ import '../domain/dungeon/dungeon_progress.dart';
 import '../domain/exchange/exchange_def.dart';
 import '../domain/gacha/banner_def.dart';
 import '../domain/story/story_beat.dart';
+import '../domain/tutorial/tutorial_controller.dart';
+import '../domain/tutorial/tutorial_stage.dart';
+import '../domain/tutorial/tutorial_step.dart';
 import '../game/battle_result.dart';
 import '../presentation/screens/adventure/adventure_map_screen.dart';
 import '../presentation/screens/adventure/stage_brief_screen.dart';
@@ -17,6 +20,7 @@ import '../presentation/screens/battle/battle_screen.dart';
 import '../presentation/screens/battle_result/battle_result_screen.dart';
 import '../presentation/screens/dungeon/dungeon_screen.dart';
 import '../presentation/screens/exchange/exchange_screen.dart';
+import '../presentation/screens/formation/formation_screen.dart';
 import '../presentation/screens/splash/splash_screen.dart';
 import '../presentation/screens/summon/summon_screen.dart';
 import '../presentation/screens/summon/trial_screen.dart';
@@ -49,7 +53,17 @@ GoRouter buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/tutorial',
-      builder: (context, state) => const PlaceholderScreen(title: '튜토리얼'),
+      builder: (context, state) {
+        final scope = AppScopeProvider.of(context);
+        final datapack = scope.datapack;
+        // 데이터팩 없이(딥링크·직접 진입) 들어오면 튜토리얼 캐릭터를 만들
+        // 수 없다 -- 정상 경로는 항상 부팅 후 진입한다.
+        if (datapack == null || datapack.characters.isEmpty) return const PlaceholderScreen(title: '튜토리얼');
+        return BattleScreen(
+          world: buildTutorialWorld(datapack),
+          tutorialController: TutorialController(steps: tutorialSteps, store: scope.tutorial),
+        );
+      },
     ),
     GoRoute(
       path: '/camp',
@@ -85,7 +99,13 @@ GoRouter buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/formation',
-      builder: (context, state) => const PlaceholderScreen(title: '편성'),
+      builder: (context, state) {
+        final scope = AppScopeProvider.of(context);
+        final datapack = scope.datapack;
+        final tagBundle = scope.tagBundle;
+        if (datapack == null || tagBundle == null) return const PlaceholderScreen(title: '편성');
+        return FormationScreen(datapack: datapack, tagBundle: tagBundle, repository: scope.formation);
+      },
     ),
     GoRoute(
       path: '/battle',
