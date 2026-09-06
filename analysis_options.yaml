@@ -18,6 +18,7 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    - functions/**
 
 # lib/battle/** import ban (package:flutter/flame, dart:ui/dart:io) is
 # enforced by `dart run tool/check_battle_imports.dart`, not by the analyzer.

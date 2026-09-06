@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+
+  match /databases/{db}/documents {
+
+    // 자기 문서 읽기만 허용
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      // settings 필드만 클라이언트 직접 수정 허용
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['settings']);
+      allow create, delete: if false;
+
+      match /{sub=**} {
+        allow read: if isOwner(uid);
+        allow write: if false;          // 모든 하위 쓰기는 Functions만
+      }
+
+      // 편성은 예외적으로 클라이언트 쓰기 허용 (전투 검증 때 서버가 다시 확인)
+      match /formations/{presetIndex} {
+        allow write: if isOwner(uid)
+          && request.resource.data.slots.size() == 10;
+      }
+    }
+
+    // 공용 읽기 데이터
+    match /gameData/{doc}   { allow read: if true;  allow write: if false; }
+    match /banners/{doc}    { allow read: if true;  allow write: if false; }
+    match /notices/{doc}    { allow read: if true;  allow write: if false; }
+    match /stagesMeta/{doc} { allow read: if true;  allow write: if false; }
+    match /dungeonsMeta/{doc}{ allow read: if true; allow write: if false; }
+
+    // 서버 전용
+    match /config/{doc=**}      { allow read, write: if false; }
+    match /serverState/{doc=**} { allow read, write: if false; }
+  }
+}

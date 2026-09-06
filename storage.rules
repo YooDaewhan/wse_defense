@@ -1,0 +1,5 @@
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /datapack/{version}/{file=**} { allow read: if true; allow write: if false; }
+  }
+}
