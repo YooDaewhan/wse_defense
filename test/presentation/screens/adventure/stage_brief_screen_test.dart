@@ -91,4 +91,28 @@ void main() {
     expect(find.byKey(const ValueKey('no_boss')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  /// 10_WIRING_PLAN.md T-60: "출격" 동작 진입점.
+  testWidgets('shows no deploy button without a callback, and invokes it when given one', (tester) async {
+    const stage = StageDef(
+      id: 'STG_1_1',
+      index: 1,
+      fieldLength: 2400,
+      allyBaseX: 0,
+      enemyBaseX: 2400,
+      enemyBaseHp: 1,
+      timeLimitSec: 300,
+    );
+    await tester.pumpWidget(MaterialApp(home: StageBriefScreen(stage: stage, datapack: _datapack)));
+    expect(find.byKey(const ValueKey('deploy_button')), findsNothing);
+
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(home: StageBriefScreen(stage: stage, datapack: _datapack, onDeployTap: () => tapped = true)),
+    );
+    await tester.tap(find.byKey(const ValueKey('deploy_button')));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+  });
 }

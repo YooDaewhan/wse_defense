@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_functions/cloud_functions.dart';
 
 /// 10_WIRING_PLAN.md T-59. 06_BACKEND.md §5의 Callable 16종(스케줄 함수
@@ -6,6 +8,20 @@ import 'package:cloud_functions/cloud_functions.dart';
 /// 하나당 Dart 함수 하나만 둔다. 리전은 06_BACKEND.md §5에 맞춰 항상
 /// `asia-northeast3`로 고정한다.
 const _region = 'asia-northeast3';
+
+/// 아직 원격 데이터팩 배포(T-40 DatapackSync)가 실제 버전 문자열을 어디서도
+/// 발급하지 않아(사용처 0건) 여기서 고정값을 하나 둔다 -- `gameData/current`
+/// 문서가 없으면 서버가 이 값 자체를 검사하지 않으므로(startBattle.ts)
+/// 에뮬레이터/개발 단계에서는 문제되지 않는다.
+const kDataVersion = '1.0.0';
+
+final _idempotencyRandom = Random();
+
+/// 매 호출마다 새로 불러 쓰는 멱등키. 재시도(같은 요청을 다시 보내는 것)는
+/// 이 값을 다시 만들지 않고 그대로 재사용해야 서버 멱등성이 의미가 있다
+/// (`BattleSubmitQueue`가 큐에 넣을 때 쓴 값을 그대로 들고 있다가 재시도).
+String newIdempotencyKey() =>
+    '${DateTime.now().microsecondsSinceEpoch}-${_idempotencyRandom.nextInt(1 << 32)}';
 
 /// `BaseRequest`(06_BACKEND.md §4.1) 공통 3필드 — 매 호출마다 반복 타이핑을
 /// 피하려고 값 객체 하나로 묶었다(리포지토리가 아니라 순수 데이터).

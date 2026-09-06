@@ -7,11 +7,14 @@ import '../../../battle/defs/unit_def.dart';
 /// 05_FRONTEND.md §2 `/adventure/:stageId/brief`: 적 특징·보스 조건·기믹
 /// 사전 표시. "기믹"에 대응하는 전용 데이터 필드가 스키마에 없어(§8),
 /// 가장 가까운 사전 정보인 전투 조건(제한시간·목표시간)으로 대신한다.
+/// [onDeployTap]이 10_WIRING_PLAN.md T-60 "출격" 동작 -- 실제 startBattle
+/// 호출·BattleWorld 생성·화면 전환은 전부 호출부(router)의 몫이다.
 class StageBriefScreen extends StatelessWidget {
-  const StageBriefScreen({super.key, required this.stage, required this.datapack});
+  const StageBriefScreen({super.key, required this.stage, required this.datapack, this.onDeployTap});
 
   final StageDef stage;
   final Datapack datapack;
+  final VoidCallback? onDeployTap;
 
   List<UnitDef> get _regularEnemies {
     final ids = <String>{for (final w in stage.waves) w.enemyId};
@@ -49,6 +52,9 @@ class StageBriefScreen extends StatelessWidget {
               '목표 클리어 시간 ${stage.targetClearSec[0]}~${stage.targetClearSec[1]}초',
               key: const ValueKey('target_clear_sec'),
             ),
+          const SizedBox(height: 24),
+          if (onDeployTap != null)
+            ElevatedButton(key: const ValueKey('deploy_button'), onPressed: onDeployTap, child: const Text('출격')),
         ],
       ),
     );

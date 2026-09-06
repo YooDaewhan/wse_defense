@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
@@ -11,13 +13,19 @@ import 'data/local/journal_repository.dart';
 import 'data/local/pending_submits_repository.dart';
 import 'data/local/settings_repository.dart';
 import 'data/local/tutorial_repository.dart';
+import 'data/remote/battle_submit_adapter.dart';
+import 'data/remote/battle_submit_queue.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await bootstrapFirebase();
   await signInAnonymouslyIfNeeded();
   await initHiveForApp();
-  runApp(WseDefenseApp(router: buildAppRouter(), appScope: _buildAppScope()));
+  final appScope = _buildAppScope();
+  // 10_WIRING_PLAN.md T-60: "앱이 복귀했을 때" 미제출 전투를 재시도한다.
+  // runApp을 막지 않도록 기다리지 않는다(실패해도 다음 앱 시작 때 또 시도).
+  unawaited(BattleSubmitQueue(store: appScope.pendingSubmits, submit: submitBattlePayloadFn(appScope)).retryPending());
+  runApp(WseDefenseApp(router: buildAppRouter(), appScope: appScope));
 }
 
 /// initHiveForApp()이 이미 5개 박스를 다 열어 둔 뒤라, 여기서는 그 박스로

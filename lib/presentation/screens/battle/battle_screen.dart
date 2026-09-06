@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../../battle/entity/battle_entity.dart';
+import '../../../battle/world/battle_input.dart';
 import '../../../battle/world/battle_world.dart';
+import '../../../domain/battle/battle_submission.dart';
 import '../../../domain/tutorial/tutorial_controller.dart';
 import '../../../domain/tutorial/tutorial_gate.dart';
 import '../../../game/battle_game.dart';
@@ -14,13 +16,16 @@ import 'widgets/unit_detail_panel.dart';
 
 /// 05_FRONTEND.md §4.1: Flame 캔버스 + HUD(Flutter 위젯) 오버레이.
 /// [tutorialController]가 있으면(10_WIRING_PLAN.md T-57 `/tutorial`) 그
-/// 위에 [TutorialOverlay]를 얹고 매 프레임 진행시킨다. VFX(T-25)는 아직
-/// 없다.
+/// 위에 [TutorialOverlay]를 얹고 매 프레임 진행시킨다. [onBattleEnd]가
+/// 있으면(T-60) 결과가 확정되는 순간 제출용 재료(기록된 입력, 최대
+/// 전선)를 한 번만 넘긴다 -- 실제 submitBattle 호출은 호출부(router)의
+/// 몫이다. VFX(T-25)는 아직 없다.
 class BattleScreen extends StatefulWidget {
-  const BattleScreen({super.key, required this.world, this.tutorialController});
+  const BattleScreen({super.key, required this.world, this.tutorialController, this.onBattleEnd});
 
   final BattleWorld world;
   final TutorialController? tutorialController;
+  final void Function(List<BattleInput> recordedInputs, int maxFrontlineX)? onBattleEnd;
 
   @override
   State<BattleScreen> createState() => _BattleScreenState();
@@ -36,6 +41,13 @@ class _BattleScreenState extends State<BattleScreen> with SingleTickerProviderSt
   bool _everUsedUltimate = false;
   bool _rewardClaimed = false;
 
+  // submitBattle 제출 재료(T-60) -- world는 InputQueue를 거치지 않고
+  // trySummon/castUltimate를 직접 호출하므로, 입력 기록은 그 호출 시점에
+  // 여기서 따로 쌓는다.
+  final List<BattleInput> _recordedInputs = [];
+  late int _maxFrontlineX = frontAllyX(widget.world);
+  bool _battleEndFired = false;
+
   @override
   void initState() {
     super.initState();
@@ -45,9 +57,24 @@ class _BattleScreenState extends State<BattleScreen> with SingleTickerProviderSt
     // 임시 연결. 튜토리얼 컨트롤러도 같은 프레임에 같이 진행시킨다.
     _hudTicker = createTicker((_) {
       _tickTutorial();
+      _tickSubmission();
       setState(() {});
     })..start();
   }
+
+  void _tickSubmission() {
+    final world = widget.world;
+    final front = frontAllyX(world);
+    if (front > _maxFrontlineX) _maxFrontlineX = front;
+
+    if (!_battleEndFired && world.outcome != null) {
+      _battleEndFired = true;
+      widget.onBattleEnd?.call(List.unmodifiable(_recordedInputs), _maxFrontlineX);
+    }
+  }
+
+  void _recordSummon(int slotIndex) => _recordedInputs.add(SummonInput(widget.world.tick, slotIndex));
+  void _recordUltimate() => _recordedInputs.add(UltimateInput(widget.world.tick));
 
   void _tickTutorial() {
     final controller = widget.tutorialController;
@@ -94,7 +121,13 @@ class _BattleScreenState extends State<BattleScreen> with SingleTickerProviderSt
       body: Stack(
         children: [
           GameWidget(game: _game),
-          BattleHud(world: widget.world, speedMultiplier: _game.speedMultiplier, onSpeedChanged: _setSpeed),
+          BattleHud(
+            world: widget.world,
+            speedMultiplier: _game.speedMultiplier,
+            onSpeedChanged: _setSpeed,
+            onSummon: _recordSummon,
+            onUltimate: _recordUltimate,
+          ),
           Positioned(
             top: 8,
             left: 8,

@@ -55,4 +55,9 @@ void main() {
     const meta = RequestMeta(idempotencyKey: 'key-1', appVersion: '1.0.0', dataVersion: '1');
     expect(meta.toJson(), {'idempotencyKey': 'key-1', 'appVersion': '1.0.0', 'dataVersion': '1'});
   });
+
+  test('newIdempotencyKey never repeats across many calls', () {
+    final keys = {for (var i = 0; i < 1000; i++) newIdempotencyKey()};
+    expect(keys, hasLength(1000));
+  });
 }

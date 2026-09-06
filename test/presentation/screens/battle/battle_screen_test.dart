@@ -5,6 +5,7 @@ import 'package:wse_defense/battle/defs/datapack.dart';
 import 'package:wse_defense/battle/defs/stage_def.dart';
 import 'package:wse_defense/battle/defs/unit_def.dart';
 import 'package:wse_defense/battle/world/battle_config.dart';
+import 'package:wse_defense/battle/world/battle_input.dart';
 import 'package:wse_defense/battle/world/battle_world.dart';
 import 'package:wse_defense/game/battle_game.dart';
 import 'package:wse_defense/presentation/screens/battle/battle_hud.dart';
@@ -59,5 +60,40 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('summon_slot_0')));
     await tester.pump(const Duration(milliseconds: 16));
     expect(find.byKey(const ValueKey('cooldown_overlay')), findsOneWidget);
+  });
+
+  /// 10_WIRING_PLAN.md T-60 완료조건: "전투 종료 시 입력 로그를
+  /// submitBattle로 전송"의 전제 -- 결과가 확정되는 순간 딱 한 번, 그때까지
+  /// 기록된 입력과 함께 알려준다.
+  testWidgets('onBattleEnd fires exactly once, with the recorded inputs, when outcome is decided', (tester) async {
+    final world = _newWorld();
+    var callCount = 0;
+    List<Object>? recordedAtEnd;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BattleScreen(
+          world: world,
+          onBattleEnd: (recorded, maxFrontlineX) {
+            callCount++;
+            recordedAtEnd = recorded;
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+
+    await tester.tap(find.byKey(const ValueKey('summon_slot_0')));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(callCount, 0); // 아직 안 끝남
+
+    world.outcome = BattleOutcome.allyWin;
+    await tester.pump(const Duration(milliseconds: 16));
+    await tester.pump(const Duration(milliseconds: 16)); // 한 번 더 돌아도 재호출 안 됨
+
+    expect(callCount, 1);
+    expect(recordedAtEnd, hasLength(1));
+    expect(recordedAtEnd!.single, isA<SummonInput>());
   });
 }

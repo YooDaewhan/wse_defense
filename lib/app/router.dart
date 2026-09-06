@@ -1,10 +1,21 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../application/app_scope.dart';
+import '../battle/constants.dart';
 import '../battle/defs/datapack.dart';
 import '../battle/defs/stage_def.dart';
 import '../battle/tag/tag_registry.dart';
+import '../battle/world/battle_input.dart';
 import '../battle/world/battle_world.dart';
+import '../battle/world/input_log.dart';
+import '../data/remote/api.dart';
+import '../data/remote/battle_submit_adapter.dart';
+import '../data/remote/battle_submit_queue.dart';
+import '../domain/battle/battle_submission.dart';
+import '../domain/battle/battle_world_builder.dart';
 import '../domain/dungeon/dungeon_def.dart';
 import '../domain/dungeon/dungeon_progress.dart';
 import '../domain/exchange/exchange_def.dart';
@@ -107,7 +118,12 @@ GoRouter buildAppRouter() => GoRouter(
             final stageId = state.pathParameters['stageId'];
             final stage = extra?.stage ?? datapack.stages[stageId];
             if (stage == null) return const PlaceholderScreen(title: '스테이지를 찾을 수 없음');
-            return StageBriefScreen(stage: stage, datapack: extra?.datapack ?? datapack);
+            final resolvedDatapack = extra?.datapack ?? datapack;
+            return StageBriefScreen(
+              stage: stage,
+              datapack: resolvedDatapack,
+              onDeployTap: () => _deployToStage(context, scope, stage, resolvedDatapack),
+            );
           },
         ),
       ],
@@ -125,12 +141,25 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: '/battle',
       builder: (context, state) {
-        final world = state.extra as BattleWorld?;
+        final scope = AppScopeProvider.of(context);
+        final extra = state.extra as ({BattleWorld world, String battleId, int seed, String formationHash})?;
         // 전투는 항상 출격 브리핑(startBattle)에서 만들어진 실제 BattleWorld를
         // extra로 받는다 — 그게 없는 직접 진입은 보여줄 실제 전투가 없으므로
         // 가짜로 하나 지어내지 않는다(T-56에서 _demoBattleWorld 삭제).
-        if (world == null) return const PlaceholderScreen(title: '전투');
-        return BattleScreen(world: world);
+        if (extra == null) return const PlaceholderScreen(title: '전투');
+        return BattleScreen(
+          world: extra.world,
+          onBattleEnd: (recordedInputs, maxFrontlineX) => _submitBattleAndShowResult(
+            context,
+            scope,
+            world: extra.world,
+            recordedInputs: recordedInputs,
+            maxFrontlineX: maxFrontlineX,
+            battleId: extra.battleId,
+            seed: extra.seed,
+            formationHash: extra.formationHash,
+          ),
+        );
       },
       routes: [
         GoRoute(
@@ -253,3 +282,101 @@ BattleResultSummary _demoBattleResult() => const BattleResultSummary(
   summons: 0,
   kills: 0,
 );
+
+/// 10_WIRING_PLAN.md T-60 "출격": `startBattle`을 부르고, 서버가 확정한
+/// 시드·편성으로 실제 `BattleWorld`를 만들어 `/battle`로 넘어간다.
+Future<void> _deployToStage(BuildContext context, AppScope scope, StageDef stage, Datapack datapack) async {
+  try {
+    final res = await startBattle(
+      RequestMeta(idempotencyKey: newIdempotencyKey(), appVersion: '1.0.0', dataVersion: kDataVersion),
+      mode: 'STORY',
+      stageId: stage.id,
+      presetIndex: 0,
+    );
+    final snapshot = Map<String, dynamic>.from(res['formationSnapshot'] as Map);
+    final formationSlots = [
+      for (final s in snapshot['slots'] as List) Map<String, dynamic>.from(s as Map),
+    ];
+    final world = buildBattleWorldFromStart(
+      stage: stage,
+      datapack: datapack,
+      seed: res['seed'] as int,
+      formationSlots: formationSlots,
+      tagBundle: scope.tagBundle,
+      growthConfig: scope.growthConfig,
+      weatherConfig: scope.weatherConfig,
+      account: scope.account,
+    );
+    if (!context.mounted) return;
+    context.push(
+      '/battle',
+      extra: (
+        world: world,
+        battleId: res['battleId'] as String,
+        seed: res['seed'] as int,
+        formationHash: snapshot['formationHash'] as String,
+      ),
+    );
+  } on ApiException catch (e) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('출격 실패 (${e.code.name})')));
+  }
+}
+
+/// 10_WIRING_PLAN.md T-60: 전투가 끝나면(BattleScreen.onBattleEnd) 입력
+/// 로그를 조립해 `submitBattle`로 보낸다. 네트워크 실패는
+/// `BattleSubmitQueue`가 `PendingSubmitsRepository`에 적재해 두고,
+/// 나중에(앱 복귀 시 `retryPending`) 같은 멱등키로 다시 시도한다 — 그래서
+/// 같은 전투를 두 번 제출해도 서버 멱등성 덕에 보상이 중복 지급되지
+/// 않는다.
+Future<void> _submitBattleAndShowResult(
+  BuildContext context,
+  AppScope scope, {
+  required BattleWorld world,
+  required List<BattleInput> recordedInputs,
+  required int maxFrontlineX,
+  required String battleId,
+  required int seed,
+  required String formationHash,
+}) async {
+  final outcome = world.outcome!;
+  final summary = buildBattleSummary(world: world, recordedInputs: recordedInputs, maxFrontlineX: maxFrontlineX);
+  final inputLog = InputLog(
+    seed: seed,
+    dataVersion: kDataVersion,
+    stageId: world.config.stage.id,
+    inputs: recordedInputs,
+    formationHash: formationHash,
+  );
+  final inputLogBase64 = base64Encode(inputLog.encode());
+  final checksum = computeBattleChecksum(inputLogBase64: inputLogBase64, seed: seed, formationHash: formationHash);
+
+  final payload = <String, dynamic>{
+    'idempotencyKey': newIdempotencyKey(),
+    'appVersion': '1.0.0',
+    'dataVersion': kDataVersion,
+    'battleId': battleId,
+    'outcome': battleOutcomeCode(outcome),
+    'summary': {...summary, 'checksum': checksum},
+    'inputLog': inputLogBase64,
+    'formationHash': formationHash,
+  };
+
+  final queue = BattleSubmitQueue(store: scope.pendingSubmits, submit: submitBattlePayloadFn(scope));
+  await queue.submitOrQueue(payload);
+
+  if (!context.mounted) return;
+  context.go(
+    '/battle/result',
+    extra: BattleResultSummary(
+      outcome: outcome,
+      frontlineCollapseTick: null,
+      mainEnemy: null,
+      formationUsed: const [],
+      hints: const [],
+      clearSec: (summary['endTick'] as int) / ticksPerSec,
+      summons: summary['totalSummons'] as int,
+      kills: summary['enemiesKilled'] as int,
+    ),
+  );
+}

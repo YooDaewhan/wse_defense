@@ -145,4 +145,48 @@ void main() {
     expect(find.byKey(const ValueKey('summon_slot_5')), findsOneWidget);
     expect(find.byKey(const ValueKey('summon_slot_0')), findsNothing);
   });
+
+  /// 10_WIRING_PLAN.md T-60: 소환/필살기가 실제로 성사됐을 때만 기록용
+  /// 콜백이 불린다(제출용 입력 로그 재료).
+  testWidgets('onSummon fires only when the summon actually succeeds', (tester) async {
+    final world = _newWorld(startingPrayerPower: 200);
+    int? summoned;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BattleHud(world: world, speedMultiplier: 1.0, onSpeedChanged: (_) {}, onSummon: (i) => summoned = i),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('summon_slot_1'))); // CHR_EXPENSIVE, 감당 못 함
+    await tester.pump();
+    expect(summoned, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('summon_slot_0')));
+    await tester.pump();
+    expect(summoned, 0);
+  });
+
+  testWidgets('onUltimate fires when the ultimate button is tapped', (tester) async {
+    final world = _newWorld()..ultimateStock = 1;
+    var ultimateFired = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BattleHud(
+            world: world,
+            speedMultiplier: 1.0,
+            onSpeedChanged: (_) {},
+            onUltimate: () => ultimateFired = true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('ultimate_button')));
+    await tester.pump();
+
+    expect(ultimateFired, isTrue);
+  });
 }

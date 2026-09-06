@@ -20,11 +20,18 @@ class BattleHud extends StatefulWidget {
     required this.world,
     required this.speedMultiplier,
     required this.onSpeedChanged,
+    this.onSummon,
+    this.onUltimate,
   });
 
   final BattleWorld world;
   final double speedMultiplier;
   final ValueChanged<double> onSpeedChanged;
+
+  /// 10_WIRING_PLAN.md T-60: 소환/필살기가 실제로 성사됐을 때만 호출된다
+  /// (제출용 입력 로그 기록 — BattleScreen이 채운다).
+  final void Function(int slotIndex)? onSummon;
+  final VoidCallback? onUltimate;
 
   @override
   State<BattleHud> createState() => _BattleHudState();
@@ -39,8 +46,15 @@ class _BattleHudState extends State<BattleHud> {
     final result = trySummon(_w, slotIndex);
     if (result != SummonResult.ok) {
       _toast(_messageFor(result));
+    } else {
+      widget.onSummon?.call(slotIndex);
     }
     setState(() {}); // world는 직접 mutate되므로 로컬 리빌드만 필요
+  }
+
+  void _tapUltimate() {
+    setState(() => castUltimate(_w));
+    widget.onUltimate?.call();
   }
 
   void _toast(String message) {
@@ -89,7 +103,7 @@ class _BattleHudState extends State<BattleHud> {
                   ),
                 ),
             const SizedBox(width: 16),
-            _UltimateButton(world: _w, onTap: () => setState(() => castUltimate(_w))),
+            _UltimateButton(world: _w, onTap: _tapUltimate),
           ],
         ),
       ],

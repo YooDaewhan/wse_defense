@@ -39,3 +39,24 @@ class AccountState {
     exchangePoint: exchangePoint ?? this.exchangePoint,
   );
 }
+
+/// 10_WIRING_PLAN.md T-60~T-62: 거의 모든 Callable 응답이 `AccountPatch`
+/// (06_BACKEND.md §4.1 `{currency: {...}, growth: {...}}`)를 들고 온다 --
+/// 화면마다 그 JSON을 직접 파싱하지 않도록 여기 한 곳에 모은다. 없는
+/// 필드는 그대로 두고(null이면 무시), 이 클래스가 모르는 통화(예:
+/// recruitTicket/collectFragment)는 아직 AccountState에 자리가 없어 조용히
+/// 버린다 -- 필요해지면 그때 필드를 늘린다.
+extension AccountPatchApplication on AccountState {
+  AccountState applyPatch(Map<String, dynamic>? patch) {
+    if (patch == null) return this;
+    final currency = patch['currency'] as Map?;
+    final growth = patch['growth'] as Map?;
+    return copyWith(
+      gold: (currency?['gold'] as num?)?.toInt() ?? gold,
+      exchangePoint: (currency?['exchangePoint'] as num?)?.toInt() ?? exchangePoint,
+      bondLevel: (growth?['bondLevel'] as num?)?.toInt() ?? bondLevel,
+      focusLevel: (growth?['focusLevel'] as num?)?.toInt() ?? focusLevel,
+      campLevel: (growth?['campDefenseLevel'] as num?)?.toInt() ?? campLevel,
+    );
+  }
+}
