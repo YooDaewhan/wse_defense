@@ -10,6 +10,8 @@ export interface StartBattleReq extends BaseRequest {
   stageId: string;
   presetIndex: number;
   difficulty?: number;
+  /** TRIAL 전용: 미보유 픽업 캐릭터를 지정 레벨로 체험할 대상. */
+  trialCharacterId?: string;
 }
 
 export interface FormationSlotSnapshot {

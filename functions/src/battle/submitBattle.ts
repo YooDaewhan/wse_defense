@@ -112,7 +112,11 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
     let rewards: Delta[] = [];
     let firstClear = false;
 
-    if (req.outcome === 'ALLY_WIN' && dungeonRef) {
+    // 09_MILESTONES.md T-51 완료조건 "보상 없음, 진행도 영향 없음" --
+    // 체험전은 outcome/dungeonRef와 무관하게 아래 두 분기를 전부 건너뛴다.
+    if (battle.mode === 'TRIAL') {
+      // no-op
+    } else if (req.outcome === 'ALLY_WIN' && dungeonRef) {
       const dungeon = DUNGEONS_BY_ID[dungeonRef.dungeonId]!;
       const difficultyMeta = dungeon.difficulties.find((d) => d.level === dungeonRef.level)!;
       const bonusDay = isBonusDay(gameDayWeekday(now), dungeon.bonusWeekdays);

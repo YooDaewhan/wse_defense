@@ -12,6 +12,7 @@ class SummonScreen extends StatelessWidget {
     required this.heldItems,
     required this.exchangePoint,
     required this.onPull,
+    required this.onTrialTap,
   });
 
   final BannerCatalog catalog;
@@ -23,6 +24,9 @@ class SummonScreen extends StatelessWidget {
   final int exchangePoint;
 
   final void Function(BannerDef banner, int count) onPull;
+
+  /// 09_MILESTONES.md T-51 `/summon/trial/:id` 진입 -- 픽업 캐릭터 하나를 넘긴다.
+  final void Function(String characterId) onTrialTap;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +49,7 @@ class SummonScreen extends StatelessWidget {
                 heldItems: heldItems,
                 exchangePoint: exchangePoint,
                 onPull: (count) => onPull(banner, count),
+                onTrialTap: onTrialTap,
               ),
           ],
         ),
@@ -60,6 +65,7 @@ class _BannerView extends StatelessWidget {
     required this.heldItems,
     required this.exchangePoint,
     required this.onPull,
+    required this.onTrialTap,
   });
 
   final BannerDef banner;
@@ -67,6 +73,7 @@ class _BannerView extends StatelessWidget {
   final Map<String, int> heldItems;
   final int exchangePoint;
   final void Function(int count) onPull;
+  final void Function(String characterId) onTrialTap;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +86,8 @@ class _BannerView extends StatelessWidget {
             '교환 포인트 $exchangePoint / ${exchange.requiredPoints}',
             key: ValueKey('summon_exchange_progress_${banner.id}'),
           ),
-        for (var i = 0; i < banner.rates.length; i++) _RateRow(banner: banner, rate: banner.rates[i], index: i),
+        for (var i = 0; i < banner.rates.length; i++)
+          _RateRow(banner: banner, rate: banner.rates[i], index: i, onTrialTap: onTrialTap),
         const SizedBox(height: 12),
         Wrap(
           spacing: 12,
@@ -104,20 +112,31 @@ class _BannerView extends StatelessWidget {
 }
 
 class _RateRow extends StatelessWidget {
-  const _RateRow({required this.banner, required this.rate, required this.index});
+  const _RateRow({required this.banner, required this.rate, required this.index, required this.onTrialTap});
 
   final BannerDef banner;
   final RateEntry rate;
   final int index;
+  final void Function(String characterId) onTrialTap;
 
   @override
   Widget build(BuildContext context) {
     // totalPct는 밀리퍼센트(100000=100%) -> 퍼센트 표시는 /1000.
     final pct = rate.totalPct / 1000;
     final pickupLabel = rate.pickup ? ' (픽업)' : '';
-    return Text(
-      '레어도 ${rate.rarity}$pickupLabel: $pct%',
-      key: ValueKey('summon_rate_${banner.id}_$index'),
+    return Row(
+      children: [
+        Text(
+          '레어도 ${rate.rarity}$pickupLabel: $pct%',
+          key: ValueKey('summon_rate_${banner.id}_$index'),
+        ),
+        if (rate.pickup && rate.pool.isNotEmpty)
+          TextButton(
+            key: ValueKey('summon_trial_${banner.id}_$index'),
+            onPressed: () => onTrialTap(rate.pool.first),
+            child: const Text('체험'),
+          ),
+      ],
     );
   }
 }

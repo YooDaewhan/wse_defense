@@ -100,3 +100,26 @@ test('T-42: allows starting a DUNGEON battle when runs remain', async () => {
   );
   expect(res.battleId).toBeTruthy();
 });
+
+/** 09_MILESTONES.md T-51 완료조건: "미보유 픽업 캐릭터를 지정 레벨로
+ * 사용". CHR_BEAR는 assets/data/v1/banners.json의 상시(기간 무제한) 픽업
+ * 캐릭터다. */
+test('T-51: starts a TRIAL battle with an unowned pickup character, bypassing ownership', async () => {
+  await seedStageMeta();
+  const uid = 'start-user-7'; // 계정 문서도, CHR_BEAR 보유도 전혀 없음
+
+  const res = await startBattleHandler(
+    fakeAuthedRequest(uid, req({ mode: 'TRIAL', trialCharacterId: 'CHR_BEAR' })),
+  );
+
+  expect(res.formationSnapshot.slots).toEqual([{ characterId: 'CHR_BEAR', equipmentInstanceId: null }]);
+});
+
+test('T-51: rejects a TRIAL battle for a character that is not currently a pickup', async () => {
+  await seedStageMeta();
+  const uid = 'start-user-8';
+
+  await expect(
+    startBattleHandler(fakeAuthedRequest(uid, req({ mode: 'TRIAL', trialCharacterId: 'CHR_ACORN' }))),
+  ).rejects.toThrow(/BANNER_CLOSED/);
+});

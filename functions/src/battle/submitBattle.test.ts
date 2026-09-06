@@ -32,6 +32,58 @@ async function startFreshBattle(uid: string): Promise<StartBattleRes> {
   );
 }
 
+async function startFreshTrialBattle(uid: string): Promise<StartBattleRes> {
+  await seedStageMeta();
+  return startBattleHandler(
+    fakeAuthedRequest(uid, {
+      idempotencyKey: 'unused',
+      appVersion: '1.0.0',
+      dataVersion: TEST_DATA_VERSION,
+      mode: 'TRIAL',
+      stageId: TEST_STAGE_ID,
+      presetIndex: 0,
+      trialCharacterId: 'CHR_BEAR',
+    }),
+  );
+}
+
+/** 체험전 편성은 슬롯 0(CHR_BEAR) 하나뿐이라 소환도 그 슬롯 하나만. */
+function buildTrialHappyPathSubmission(battle: StartBattleRes, overrides: Partial<SubmitBattleReq> = {}): SubmitBattleReq {
+  const endTick = 60 * TICKS_PER_SEC;
+  const inputLog = encodeInputLog({
+    seed: battle.seed,
+    dataVersion: TEST_DATA_VERSION,
+    stageId: TEST_STAGE_ID,
+    formationHash: battle.formationSnapshot.formationHash,
+    inputs: [{ type: 'SUMMON', tick: 0, slotIndex: 0 }],
+  }).toString('base64');
+
+  const summary: SubmitBattleReq['summary'] = {
+    endTick,
+    totalSummons: 1,
+    totalPrayerSpent: 100,
+    ultimateUsed: 0,
+    focusBoostStage: 0,
+    enemiesKilled: 5,
+    enemyBaseHpLeft: 0,
+    allyBaseHpLeft: 5000,
+    maxFrontlineX: 2000,
+    checksum: computeV12Checksum(inputLog, battle.seed, battle.formationSnapshot.formationHash),
+  };
+
+  return {
+    idempotencyKey: randomUUID(),
+    appVersion: '1.0.0',
+    dataVersion: TEST_DATA_VERSION,
+    battleId: battle.battleId,
+    outcome: 'ALLY_WIN',
+    summary,
+    inputLog,
+    formationHash: battle.formationSnapshot.formationHash,
+    ...overrides,
+  };
+}
+
 async function startFreshDungeonBattle(uid: string): Promise<StartBattleRes> {
   await seedDungeonStageMeta();
   await seedOwnedFormation(uid);
@@ -232,4 +284,19 @@ test('T-42: a second DUNGEON clear the same day accumulates the shared counter',
 
   const counters = await db.collection(`users/${uid}/dailyCounters`).get();
   expect(counters.docs[0].data().totalDungeonRuns).toBe(2);
+});
+
+/** 09_MILESTONES.md T-51 완료조건: "보상 없음, 진행도 영향 없음". */
+test('T-51: a TRIAL clear grants no rewards and leaves progress untouched', async () => {
+  const uid = 'submit-user-10'; // 계정 문서도 미리 만들지 않음(진행도 영향이 정말 없는지 확인)
+  const battle = await startFreshTrialBattle(uid);
+
+  const res = await submitBattleHandler(fakeAuthedRequest(uid, buildTrialHappyPathSubmission(battle)));
+
+  expect(res.accepted).toBe(true);
+  expect(res.rewards).toEqual([]);
+  expect(res.firstClear).toBe(false);
+
+  const userDoc = await db.doc(`users/${uid}`).get();
+  expect(userDoc.data()?.progress?.clearedStages?.[TEST_STAGE_ID]).toBeUndefined();
 });

@@ -23,6 +23,7 @@ import '../presentation/screens/dungeon/dungeon_screen.dart';
 import '../presentation/screens/exchange/exchange_screen.dart';
 import '../presentation/screens/splash/splash_screen.dart';
 import '../presentation/screens/summon/summon_screen.dart';
+import '../presentation/screens/summon/trial_screen.dart';
 import '../presentation/screens/story/story_player_screen.dart';
 import '../presentation/widgets/placeholder_screen.dart';
 
@@ -162,14 +163,15 @@ GoRouter buildAppRouter() => GoRouter(
           heldItems: extra?.heldItems ?? const {},
           exchangePoint: extra?.exchangePoint ?? 0,
           onPull: (banner, count) {},
+          onTrialTap: (characterId) => context.push('/summon/trial/$characterId'),
         );
       },
       routes: [
         GoRoute(
           path: 'trial/:id',
-          builder: (context, state) => PlaceholderScreen(
-            title: '체험전',
-            subtitle: state.pathParameters['id'],
+          builder: (context, state) => TrialScreen(
+            characterId: state.pathParameters['id'] ?? '',
+            onStartTrial: () {},
           ),
         ),
       ],

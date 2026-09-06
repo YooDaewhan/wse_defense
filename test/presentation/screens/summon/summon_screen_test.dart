@@ -51,7 +51,13 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: SummonScreen(catalog: _catalog, heldItems: const {}, exchangePoint: 0, onPull: (banner, count) {}),
+        home: SummonScreen(
+          catalog: _catalog,
+          heldItems: const {},
+          exchangePoint: 0,
+          onPull: (banner, count) {},
+          onTrialTap: (characterId) {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -70,6 +76,7 @@ void main() {
           heldItems: const {'ITM_RECRUIT_TICKET': 15},
           exchangePoint: 0,
           onPull: (banner, count) {},
+          onTrialTap: (characterId) {},
         ),
       ),
     );
@@ -84,7 +91,13 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: SummonScreen(catalog: _catalog, heldItems: const {}, exchangePoint: 40, onPull: (banner, count) {}),
+        home: SummonScreen(
+          catalog: _catalog,
+          heldItems: const {},
+          exchangePoint: 40,
+          onPull: (banner, count) {},
+          onTrialTap: (characterId) {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -112,6 +125,7 @@ void main() {
             pulledBanner = banner;
             pulledCount = count;
           },
+          onTrialTap: (characterId) {},
         ),
       ),
     );
@@ -122,5 +136,31 @@ void main() {
 
     expect(pulledBanner?.id, 'BNR_STANDARD');
     expect(pulledCount, 10);
+  });
+
+  testWidgets('T-51: only pickup rows show a trial button, and tapping it reports the pickup character', (tester) async {
+    _useTallSurface(tester);
+    String? tappedCharacterId;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SummonScreen(
+          catalog: _catalog,
+          heldItems: const {},
+          exchangePoint: 0,
+          onPull: (banner, count) {},
+          onTrialTap: (characterId) => tappedCharacterId = characterId,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('summon_trial_BNR_STANDARD_0')), findsOneWidget); // 픽업(레어도 3)
+    expect(find.byKey(const ValueKey('summon_trial_BNR_STANDARD_1')), findsNothing); // 비픽업(레어도 1)
+
+    await tester.tap(find.byKey(const ValueKey('summon_trial_BNR_STANDARD_0')));
+    await tester.pumpAndSettle();
+
+    expect(tappedCharacterId, 'CHR_PICKUP');
   });
 }

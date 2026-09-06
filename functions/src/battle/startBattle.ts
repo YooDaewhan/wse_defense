@@ -3,6 +3,8 @@ import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https
 import { db } from '../common/admin';
 import { requireAuth } from '../common/auth';
 import { DAILY_RUN_LIMIT } from '../dungeon/dungeonData';
+import { BANNERS } from '../gacha/bannerData';
+import { isActivePickupCharacter } from '../gacha/pickupWindow';
 import { gameDateKey } from '../schedule/gameDay';
 import { FormationSnapshot, StageMeta, StartBattleReq, StartBattleRes } from './types';
 
@@ -42,6 +44,17 @@ async function loadFormationSnapshot(uid: string, presetIndex: number): Promise<
   return { presetIndex, slots, formationHash };
 }
 
+/** TRIAL 전용: 저장된 편성 프리셋도 소유 검증도 거치지 않고, 체험 대상
+ * 캐릭터 하나만 담은 스냅샷을 만든다. 09_MILESTONES.md T-51 완료조건
+ * "미보유 픽업 캐릭터를 지정 레벨로 사용" -- 레벨(성장치)은 아직 배틀
+ * 스냅샷에 반영되지 않으므로(이 파일 상단 주석 참고) 모든 캐릭터가 이미
+ * 기준 스탯으로 전투하는 현재 구조에서는 별도 처리가 필요 없다. */
+function trialFormationSnapshot(characterId: string): FormationSnapshot {
+  const slots = [{ characterId, equipmentInstanceId: null }];
+  const formationHash = createHash('sha256').update(JSON.stringify(slots)).digest('hex');
+  return { presetIndex: -1, slots, formationHash };
+}
+
 export async function startBattleHandler(request: CallableRequest<StartBattleReq>): Promise<StartBattleRes> {
   const uid = requireAuth(request);
   const { stageId, presetIndex, mode, dataVersion } = request.data;
@@ -64,7 +77,17 @@ export async function startBattleHandler(request: CallableRequest<StartBattleReq
     }
   }
 
-  const formationSnapshot = await loadFormationSnapshot(uid, presetIndex);
+  // 06_BACKEND.md §4.3 "TRIAL: 픽업 기간 확인" -- 소유 검증 대신 대상
+  // 캐릭터가 지금 픽업 중인지만 본다.
+  if (mode === 'TRIAL') {
+    const trialCharacterId = request.data.trialCharacterId;
+    if (!trialCharacterId || !isActivePickupCharacter(trialCharacterId, Date.now(), BANNERS)) {
+      throw new HttpsError('failed-precondition', 'BANNER_CLOSED');
+    }
+  }
+
+  const formationSnapshot =
+    mode === 'TRIAL' ? trialFormationSnapshot(request.data.trialCharacterId!) : await loadFormationSnapshot(uid, presetIndex);
 
   const seed = randomInt(2 ** 31);
   const issuedAt = Date.now();
