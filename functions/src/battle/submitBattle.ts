@@ -10,8 +10,9 @@ import { TICKS_PER_SEC } from './constants';
 import { DEEP_FOREST_FLOORS_BY_STAGE } from '../dungeon/deepForestData';
 import { aggregateRolls, rollDrops } from '../dungeon/dropRoll';
 import { DUNGEONS_BY_ID, STAGE_ID_TO_DUNGEON } from '../dungeon/dungeonData';
-import { gameDateKey, gameDayWeekday, isBonusDay, nextGameDayResetMs } from '../schedule/gameDay';
+import { gameDateKey, gameDayWeekday, gameWeekKey, isBonusDay, nextGameDayResetMs } from '../schedule/gameDay';
 import { decodeInputLog } from './inputLog';
+import { PUZZLE_REWARDS } from './puzzleData';
 import { BattleDoc, StageMeta, SubmitBattleReq, SubmitBattleRes } from './types';
 import {
   isOutlierResult,
@@ -85,11 +86,14 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
     const deepForestFloor = DEEP_FOREST_FLOORS_BY_STAGE[battle.stageId];
     const now = new Date();
     const counterRef = dungeonRef ? db.doc(`users/${uid}/dailyCounters/${gameDateKey(now)}`) : null;
+    // PUZZLE 모드면 "주간 1회 보상"(puzzleCleared) 확인에 쓴다.
+    const weekRef = battle.mode === 'PUZZLE' ? db.doc(`users/${uid}/weeklyCounters/${gameWeekKey(now)}`) : null;
 
-    const [metaSnap, userSnap, counterSnap] = await Promise.all([
+    const [metaSnap, userSnap, counterSnap, weekSnap] = await Promise.all([
       tx.get(db.doc(`stagesMeta/${battle.stageId}`)),
       tx.get(userRef),
       counterRef ? tx.get(counterRef) : Promise.resolve(undefined),
+      weekRef ? tx.get(weekRef) : Promise.resolve(undefined),
     ]);
     const meta = metaSnap.data() as StageMeta;
 
@@ -144,6 +148,13 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
       // 몫이라 클리어만으로 이중 지급되지 않게 한다.
       const prevBestFloor = (userSnap.data()?.progress?.deepForestBestFloor as number) ?? 0;
       tx.update(userRef, { 'progress.deepForestBestFloor': Math.max(prevBestFloor, deepForestFloor.floor) });
+    } else if (req.outcome === 'ALLY_WIN' && battle.mode === 'PUZZLE') {
+      // 09_MILESTONES.md T-53 완료조건 "주간 1회 보상" -- 이번 주에 이미
+      // 받았으면 재도전은 보상 없이 통과만 시킨다.
+      if (weekSnap?.data()?.puzzleCleared !== true) {
+        rewards = PUZZLE_REWARDS;
+        tx.set(weekRef!, { puzzleCleared: true }, { merge: true });
+      }
     } else if (req.outcome === 'ALLY_WIN') {
       const clearedStages = (userSnap.data()?.progress?.clearedStages ?? {}) as Record<string, { bestClearSec: number }>;
       firstClear = !clearedStages[battle.stageId];

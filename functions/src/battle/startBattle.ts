@@ -8,6 +8,7 @@ import { BANNERS } from '../gacha/bannerData';
 import { isActivePickupCharacter } from '../gacha/pickupWindow';
 import { gameDateKey } from '../schedule/gameDay';
 import { CHARACTER_INTRINSIC_TAGS } from './characterData';
+import { PUZZLE_FORMATION, PUZZLE_STAGE_ID } from './puzzleData';
 import { FormationSnapshot, StageMeta, StartBattleReq, StartBattleRes } from './types';
 
 interface RawFormationSlot {
@@ -53,6 +54,16 @@ async function loadFormationSnapshot(uid: string, presetIndex: number): Promise<
  * 기준 스탯으로 전투하는 현재 구조에서는 별도 처리가 필요 없다. */
 function trialFormationSnapshot(characterId: string): FormationSnapshot {
   const slots = [{ characterId, equipmentInstanceId: null }];
+  const formationHash = createHash('sha256').update(JSON.stringify(slots)).digest('hex');
+  return { presetIndex: -1, slots, formationHash };
+}
+
+/** PUZZLE 전용: 저장된 편성 프리셋도 소유 검증도 거치지 않고, 서버가
+ * 고정한 "지정 덱"을 그대로 스냅샷으로 쓴다. 09_MILESTONES.md T-53
+ * 완료조건 "성장 고정 기믹, 지정 편성" -- 성장치는 trialFormationSnapshot
+ * 과 같은 이유로 아직 배틀 스냅샷에 반영되지 않아 별도 처리가 필요 없다. */
+function puzzleFormationSnapshot(): FormationSnapshot {
+  const slots = PUZZLE_FORMATION;
   const formationHash = createHash('sha256').update(JSON.stringify(slots)).digest('hex');
   return { presetIndex: -1, slots, formationHash };
 }
@@ -103,8 +114,18 @@ export async function startBattleHandler(request: CallableRequest<StartBattleReq
     }
   }
 
+  // PUZZLE은 지정 덱 하나뿐이라 그 stageId로만 들어올 수 있다 -- 다른
+  // stageId에 지정 편성(소유 검증 우회)을 얹는 걸 막는다.
+  if (mode === 'PUZZLE' && stageId !== PUZZLE_STAGE_ID) {
+    throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
+  }
+
   const formationSnapshot =
-    mode === 'TRIAL' ? trialFormationSnapshot(request.data.trialCharacterId!) : await loadFormationSnapshot(uid, presetIndex);
+    mode === 'TRIAL'
+      ? trialFormationSnapshot(request.data.trialCharacterId!)
+      : mode === 'PUZZLE'
+        ? puzzleFormationSnapshot()
+        : await loadFormationSnapshot(uid, presetIndex);
 
   // 06_BACKEND.md §4.3 "스테이지 restrictions(requiredTags) 준수" -- 깊은
   // 숲 층별 편성 제한만 우선 구현한다(다른 모드로 확장은 그때 필요할 때).

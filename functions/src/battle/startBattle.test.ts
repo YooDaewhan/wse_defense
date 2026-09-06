@@ -1,5 +1,6 @@
 import { db } from '../common/admin';
 import { gameDateKey } from '../schedule/gameDay';
+import { PUZZLE_STAGE_ID } from './puzzleData';
 import { startBattleHandler } from './startBattle';
 import { StartBattleReq } from './types';
 import {
@@ -8,6 +9,7 @@ import {
   seedDungeonStageMeta,
   seedOwnedAnimalFormation,
   seedOwnedFormation,
+  seedPuzzleStageMeta,
   seedStageMeta,
   TEST_DATA_VERSION,
   TEST_DUNGEON_STAGE_ID,
@@ -161,4 +163,29 @@ test('T-52: starts a DEEP_FOREST battle once the formation meets the required ta
   );
 
   expect(res.battleId).toBeTruthy();
+});
+
+/** 09_MILESTONES.md T-53 완료조건: "지정 편성" -- 소유 여부·저장된 편성
+ * 프리셋과 무관하게 puzzleData.ts의 고정 덱이 그대로 스냅샷이 된다. */
+test('T-53: starts a PUZZLE battle with the designated deck, ignoring ownership and saved presets', async () => {
+  await seedPuzzleStageMeta();
+  const uid = 'start-user-12'; // 계정도 캐릭터도 편성 프리셋도 전혀 없음
+
+  const res = await startBattleHandler(
+    fakeAuthedRequest(uid, req({ mode: 'PUZZLE', stageId: PUZZLE_STAGE_ID })),
+  );
+
+  expect(res.formationSnapshot.slots).toEqual([
+    { characterId: 'CHR_ACORN', equipmentInstanceId: null },
+    { characterId: 'CHR_DROPLET', equipmentInstanceId: null },
+  ]);
+});
+
+test('T-53: rejects a PUZZLE battle for any stageId other than the designated weekly puzzle', async () => {
+  await seedStageMeta();
+  const uid = 'start-user-13';
+
+  await expect(
+    startBattleHandler(fakeAuthedRequest(uid, req({ mode: 'PUZZLE', stageId: TEST_STAGE_ID }))),
+  ).rejects.toThrow(/VALIDATION_FAILED/);
 });

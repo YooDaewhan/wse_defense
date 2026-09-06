@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { db } from '../common/admin';
 import { TICKS_PER_SEC } from './constants';
 import { encodeInputLog } from './inputLog';
+import { PUZZLE_STAGE_ID } from './puzzleData';
 import { startBattleHandler } from './startBattle';
 import { submitBattleHandler } from './submitBattle';
 import {
@@ -9,6 +10,7 @@ import {
   seedDeepForestStageMeta,
   seedDungeonStageMeta,
   seedOwnedFormation,
+  seedPuzzleStageMeta,
   seedStageMeta,
   TEST_DATA_VERSION,
   TEST_DUNGEON_ID,
@@ -43,6 +45,24 @@ async function startFreshDeepForestBattle(uid: string, stageId: string): Promise
       dataVersion: TEST_DATA_VERSION,
       mode: 'DEEP_FOREST',
       stageId,
+      presetIndex: 0,
+    }),
+  );
+}
+
+async function startFreshPuzzleBattle(uid: string): Promise<StartBattleRes> {
+  await seedPuzzleStageMeta();
+  // PUZZLE은 소유 검증을 건너뛰지만(지정 편성), 실제 플레이어는 이미
+  // bootstrapAccount로 계정 문서가 있는 상태다 -- 보상 지급(currency
+  // 필드 update)이 그 문서의 존재를 전제하므로 여기서도 만들어 둔다.
+  await db.doc(`users/${uid}`).set({ currency: { gold: 0 } });
+  return startBattleHandler(
+    fakeAuthedRequest(uid, {
+      idempotencyKey: 'unused',
+      appVersion: '1.0.0',
+      dataVersion: TEST_DATA_VERSION,
+      mode: 'PUZZLE',
+      stageId: PUZZLE_STAGE_ID,
       presetIndex: 0,
     }),
   );
@@ -340,4 +360,25 @@ test('T-52: the best floor record never decreases on a later, lower-floor clear'
 
   const userDoc = await db.doc(`users/${uid}`).get();
   expect(userDoc.data()?.progress.deepForestBestFloor).toBe(2);
+});
+
+/** 09_MILESTONES.md T-53 완료조건: "주간 1회 보상". */
+test('T-53: the first PUZZLE clear this week grants the reward', async () => {
+  const uid = 'submit-user-13';
+  const battle = await startFreshPuzzleBattle(uid);
+
+  const res = await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle)));
+
+  expect(res.rewards).toEqual([{ item: 'ITM_GOLD', amount: 500 }]);
+});
+
+test('T-53: a second PUZZLE clear the same week grants no further reward', async () => {
+  const uid = 'submit-user-14';
+  const battle1 = await startFreshPuzzleBattle(uid);
+  await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle1)));
+
+  const battle2 = await startFreshPuzzleBattle(uid);
+  const res2 = await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle2)));
+
+  expect(res2.rewards).toEqual([]);
 });

@@ -1,5 +1,6 @@
 import { CallableRequest } from 'firebase-functions/v2/https';
 import { db } from '../common/admin';
+import { PUZZLE_STAGE_ID } from './puzzleData';
 import { StageMeta } from './types';
 
 export function fakeAuthedRequest<T>(uid: string, data: T): CallableRequest<T> {
@@ -34,6 +35,11 @@ export const TEST_DUNGEON_ID = 'DGN_SUN';
 
 export async function seedDungeonStageMeta(): Promise<void> {
   await db.doc(`stagesMeta/${TEST_DUNGEON_STAGE_ID}`).set({ ...testStageMeta, firstRewards: [], repeatRewards: [] });
+}
+
+/** puzzleData.ts의 PUZZLE_STAGE_ID와 짝을 맞춘 stagesMeta. */
+export async function seedPuzzleStageMeta(): Promise<void> {
+  await db.doc(`stagesMeta/${PUZZLE_STAGE_ID}`).set({ ...testStageMeta, firstRewards: [], repeatRewards: [] });
 }
 
 /** deepForestData.ts의 STG_DEEPFOREST_1(제한 없음)/STG_DEEPFOREST_3
