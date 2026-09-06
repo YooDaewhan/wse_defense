@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'app/bootstrap.dart';
 import 'app/router.dart';
 import 'app/theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await bootstrapFirebase();
+  await signInAnonymouslyIfNeeded();
   runApp(WseDefenseApp(router: buildAppRouter()));
 }
 
