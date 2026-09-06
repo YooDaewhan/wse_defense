@@ -1,5 +1,6 @@
 import '../defs/stage_def.dart';
 import '../defs/unit_def.dart';
+import '../defs/weather_config.dart';
 import '../skill/skill_trigger_def.dart';
 import '../tag/tag_effect_def.dart';
 import '../tag/tag_registry.dart';
@@ -27,6 +28,8 @@ class BattleConfig {
     this.tagEffects = const [],
     this.relationRules = const [],
     this.skillDefs = const {},
+    this.weatherConfig = const WeatherConfig(),
+    this.stageWeatherBias = 0,
   });
 
   final StageDef stage;
@@ -52,4 +55,11 @@ class BattleConfig {
   final List<int> focusBoostBonus;
   final List<int> focusBoostCap;
   final List<int> focusBoostCost;
+
+  /// 03_BATTLE_ENGINE.md §9 WeatherSystem(T-45).
+  final WeatherConfig weatherConfig;
+
+  /// §9 "스테이지 편향 기믹" — 던전 WEATHER_BIAS(07_DUNGEON_EXCHANGE.md §3.1
+  /// `gimmick.biasPerSample`)가 있으면 여기 채워 넣는다. 기본 0 = 편향 없음.
+  final int stageWeatherBias;
 }

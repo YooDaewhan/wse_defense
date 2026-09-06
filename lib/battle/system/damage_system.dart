@@ -64,13 +64,15 @@ class DamageSystem implements BattleSystem {
     var i = 0;
     while (i < queue.length) {
       final targetId = queue[i].targetId;
-      var sum = 0;
+      var directSum = 0;
+      var selfCostSum = 0;
       var forced = false;
       var forcedDistance = 0;
       var j = i;
       while (j < queue.length && queue[j].targetId == targetId) {
         final d = queue[j];
-        if (d.kind == DamageKind.direct) sum += d.amount;
+        if (d.kind == DamageKind.direct) directSum += d.amount;
+        if (d.kind == DamageKind.selfCost) selfCostSum += d.amount;
         if (d.causesForcedKb && !forced) {
           forced = true;
           forcedDistance = d.forcedKbDistance;
@@ -82,21 +84,25 @@ class DamageSystem implements BattleSystem {
       final target = w.entities.byId(targetId);
       if (target == null) continue;
 
-      var remaining = sum;
+      // 03_BATTLE_ENGINE.md §10.1 RALLY: 자기비용은 껍질로 막히지 않고
+      // (막을 이유가 없음 — 스스로 낸 비용), 자연 넉백·날씨 활약의 근거가
+      // 되는 "실제 피해"에도 포함되지 않는다.
+      var remaining = directSum;
       if (target.shieldHp > 0) {
         final absorbed = target.shieldHp < remaining ? target.shieldHp : remaining;
         target.shieldHp -= absorbed;
         remaining -= absorbed;
       }
       final hpBefore = target.hp;
-      target.hp -= remaining;
+      target.hp -= remaining + selfCostSum;
       if (remaining > 0) {
         w.events.add(DamageDealtEvent(w.tick, targetId, remaining));
+        w.recordWeatherActivity(target); // 들 기질: "실제 피해를 받은 경우도 활동 인정"
       }
       SkillTriggerRunner.onHpChanged(w, target, hpBefore, target.hp);
 
       if (target.hp <= 0) continue; // 사망이 넉백보다 우선 (§6 4단계)
-      _triggerKnockbackIfNeeded(w, target, forced, forcedDistance);
+      if (remaining > 0) _triggerKnockbackIfNeeded(w, target, forced, forcedDistance);
     }
 
     w.pendingDamage.clear();

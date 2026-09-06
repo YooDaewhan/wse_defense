@@ -18,6 +18,7 @@ import 'battle_config.dart';
 import 'battle_input.dart';
 import 'formation_slot.dart';
 import 'spawn_runtime.dart';
+import 'weather_state.dart';
 
 enum BattlePhase { ready, running, finished }
 
@@ -44,6 +45,7 @@ class BattleWorld {
        ],
        prayerPower = config.startingPrayerPower,
        ultimateGauge = ultGaugeMax ~/ 2,
+       weatherGauge = config.weatherConfig.gaugeStart,
        tagRegistry = config.tagRegistry ?? TagRegistry(const []) {
     // 좌표는 고정소수점(POS_SCALE)로 저장한다 (01_ARCHITECTURE.md §3.1).
     allyBase = BaseEntity(
@@ -79,7 +81,16 @@ class BattleWorld {
   int focusBoostStage = 0;
   int ultimateGauge; // 0..ultGaugeMax
   int ultimateStock = 0;
-  int weatherRegenPct = pctScale; // WeatherSystem(T-45) 전까지 100% 고정
+  int weatherRegenPct = pctScale; // WeatherSystem(T-45)이 매 샘플마다 갱신
+
+  /// 03_BATTLE_ENGINE.md §9 WeatherSystem(T-45). `weatherGauge`는 기본값이
+  /// config에서 오므로(gaugeStart) 필드 자체엔 기본값을 두지 않고 생성자
+  /// 초기화 리스트에서만 채운다.
+  WeatherState weather = WeatherState.dusk;
+  int weatherGauge;
+  final List<int> activeSunKinds = [];
+  final List<int> activeMoonKinds = [];
+  final List<int> activeFieldKinds = [];
 
   final List<FormationSlot> formation;
   final List<WaveRuntimeState> waveStates;
@@ -165,6 +176,33 @@ class BattleWorld {
   int minX(Side side) => 0;
   int maxX(Side side) => config.stage.fieldLength * posScale;
 
+  int? _sunTagIndex;
+  int? _moonTagIndex;
+  int? _fieldTagIndex;
+
+  /// 03_BATTLE_ENGINE.md §9.1 "활약" 판정. 아군만 집계한다(날씨는 플레이어
+  /// 기질 시스템이라 적/기지는 대상 밖) — "종류"는 편성 슬롯 인덱스로
+  /// 식별한다(같은 슬롯에서 여러 번 재소환해도 하나의 종류).
+  void recordWeatherActivity(BattleEntity e) {
+    if (e.side != Side.ally) return;
+    final slotIndex = config.formation.indexWhere((d) => d.id == e.def.id);
+    if (slotIndex == -1) return;
+
+    _sunTagIndex ??= tagRegistry.indexOf('TAG_TEMPER_SUN');
+    _moonTagIndex ??= tagRegistry.indexOf('TAG_TEMPER_MOON');
+    _fieldTagIndex ??= tagRegistry.indexOf('TAG_TEMPER_FIELD');
+
+    if (_sunTagIndex! != -1 && e.tags.levelOf(_sunTagIndex!) > 0) {
+      _insertSortedUnique(activeSunKinds, slotIndex);
+    }
+    if (_moonTagIndex! != -1 && e.tags.levelOf(_moonTagIndex!) > 0) {
+      _insertSortedUnique(activeMoonKinds, slotIndex);
+    }
+    if (_fieldTagIndex! != -1 && e.tags.levelOf(_fieldTagIndex!) > 0) {
+      _insertSortedUnique(activeFieldKinds, slotIndex);
+    }
+  }
+
   /// 정확히 1틱 진행. 외부에서 이것만 호출한다.
   void step() {
     if (phase != BattlePhase.running) return;
@@ -201,6 +239,11 @@ class BattleWorld {
     'ultimateGauge': ultimateGauge,
     'ultimateStock': ultimateStock,
     'weatherRegenPct': weatherRegenPct,
+    'weather': weather.index,
+    'weatherGauge': weatherGauge,
+    'activeSunKinds': activeSunKinds,
+    'activeMoonKinds': activeMoonKinds,
+    'activeFieldKinds': activeFieldKinds,
     'rng': rng.exportState(),
     'formationCooldowns': [for (final s in formation) s.cooldownLeft],
     'waveSpawnedCounts': [for (final w in waveStates) w.spawnedCount],
@@ -247,6 +290,11 @@ class BattleWorld {
     w.ultimateGauge = data['ultimateGauge'] as int;
     w.ultimateStock = data['ultimateStock'] as int;
     w.weatherRegenPct = data['weatherRegenPct'] as int;
+    w.weather = WeatherState.values[data['weather'] as int];
+    w.weatherGauge = data['weatherGauge'] as int;
+    w.activeSunKinds.addAll([for (final v in data['activeSunKinds'] as List<Object?>) v as int]);
+    w.activeMoonKinds.addAll([for (final v in data['activeMoonKinds'] as List<Object?>) v as int]);
+    w.activeFieldKinds.addAll([for (final v in data['activeFieldKinds'] as List<Object?>) v as int]);
     w.rng.restoreState(data['rng'] as Map<String, Object?>);
 
     final formationCooldowns = data['formationCooldowns'] as List<Object?>;
@@ -305,6 +353,23 @@ class BattleWorld {
     }
     return h;
   }
+}
+
+/// 03_BATTLE_ENGINE.md §9.1: "삽입 시 이분 삽입, 중복 제거" — Set 대신
+/// 정렬된 List를 써서 순회 순서가 결정론을 깨지 않게 한다.
+void _insertSortedUnique(List<int> list, int value) {
+  var lo = 0;
+  var hi = list.length;
+  while (lo < hi) {
+    final mid = (lo + hi) >> 1;
+    if (list[mid] < value) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  if (lo < list.length && list[lo] == value) return;
+  list.insert(lo, value);
 }
 
 int _fnvMix(int h, int value) {

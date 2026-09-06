@@ -1,5 +1,7 @@
-/// 03_BATTLE_ENGINE.md §6.
-enum DamageKind { direct, dot, reflect }
+/// 03_BATTLE_ENGINE.md §6. `selfCost`(§10.1 기운내기/RALLY의 자기 HP
+/// 소비)는 HP는 깎지만 자연 넉백도, 날씨 "활약"도 만들지 않는다 —
+/// DamageSystem이 이 kind만 따로 취급한다.
+enum DamageKind { direct, dot, reflect, selfCost }
 
 class PendingDamage {
   const PendingDamage({

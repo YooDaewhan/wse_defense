@@ -89,6 +89,10 @@ class BattleEntity implements TagQueryTarget {
   int stunImmuneUntilTick = 0; // 멈칫 종료 후 재적용 면역
   int pushImmuneUntilTick = 0; // 밀치기 효과 자체의 재적용 대기(3초)
 
+  /// 03_BATTLE_ENGINE.md §9.2 "회복 총량 상한 2%/초"(WeatherSystem, T-45)용
+  /// 예산 소비량(밀리퍼센트). 30틱마다 0으로 리셋된다.
+  int healBudgetUsedPctThisSecond = 0;
+
   /// ON_SPAWN/ON_DEATH/ON_HP_THRESHOLD처럼 "인스턴스 1회"인 스킬 트리거의
   /// 발동 여부(skill.id 기준). 멤버십만 확인·기록하고 순회하지 않는다.
   final Set<String> firedOnceTriggers = {};
@@ -149,6 +153,7 @@ class BattleEntity implements TagQueryTarget {
     'stunImmuneUntilTick': stunImmuneUntilTick,
     'pushImmuneUntilTick': pushImmuneUntilTick,
     'firedOnceTriggers': firedOnceTriggers.toList(),
+    'healBudgetUsedPctThisSecond': healBudgetUsedPctThisSecond,
   };
 
   /// [serialize]의 역. `def`는 호출부(BattleWorld.deserialize)가
@@ -204,6 +209,7 @@ class BattleEntity implements TagQueryTarget {
     e.firedOnceTriggers.addAll([
       for (final t in data['firedOnceTriggers'] as List<Object?>) t as String,
     ]);
+    e.healBudgetUsedPctThisSecond = data['healBudgetUsedPctThisSecond'] as int;
     return e;
   }
 

@@ -1,5 +1,6 @@
 import '../../constants.dart';
 import '../../entity/battle_entity.dart';
+import '../../heal/heal_budget.dart';
 import '../../stat/modifier_source.dart';
 import '../../stat/stat_key.dart';
 import '../../world/battle_world.dart';
@@ -40,10 +41,23 @@ class HealHandler extends EffectHandler {
     if (inst.tickAccumulator < inst.params.intervalTicks) return;
     inst.tickAccumulator = 0;
 
+    // 03_BATTLE_ENGINE.md §9.2: 날씨의 아군 회복 보정(healReceived)이 여기도
+    // 걸린다. "회복 총량 상한 2%/초"는 정률(pctOfMaxHp) 회복분만 예산을
+    // 태운다 — 고정치(amount) 회복은 문서가 상한을 %로만 얘기해 스코프 밖.
     final maxHp = target.stats.get(StatKey.maxHp);
-    final healAmount = inst.params.amount + maxHp * inst.params.pctOfMaxHp ~/ pctScale;
+    final healReceivedPct = target.stats.get(StatKey.healReceived);
+    final scaledFlat = inst.params.amount * (pctScale + healReceivedPct) ~/ pctScale;
+    final scaledPctOfMax = inst.params.pctOfMaxHp * (pctScale + healReceivedPct) ~/ pctScale;
+    final grantedPct = grantFromHealBudget(target, scaledPctOfMax, w.config.weatherConfig.healCapPctPerSec);
+
+    final healAmount = scaledFlat + maxHp * grantedPct ~/ pctScale;
+    final before = target.hp;
     var next = target.hp + healAmount;
     if (next > maxHp) next = maxHp; // 최대HP 초과 불가
     target.hp = next;
+
+    // §9.1: "실제 HP 회복... 수행" — 이미 최대HP라 그대로인 회복은 활약이
+    // 아니다.
+    if (next > before) w.recordWeatherActivity(target);
   }
 }

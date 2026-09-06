@@ -32,6 +32,8 @@ class StatBuffHandler extends EffectHandler {
     target.effects.add(
       EffectInstance(type: type, source: src, params: p, ticksLeft: p.durationTicks),
     );
+    // 03_BATTLE_ENGINE.md §9.1: "버프 적용... 수행"도 활약으로 친다.
+    w.recordWeatherActivity(target);
   }
 
   @override

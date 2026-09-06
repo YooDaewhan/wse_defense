@@ -34,6 +34,9 @@ class AttackSystem implements BattleSystem {
           if (e.actionTimer <= 0) {
             _resolveHit(w, e);
             e.completedAttacks++;
+            // 03_BATTLE_ENGINE.md §9.1: "유효 공격 판정 1회 이상 완료" —
+            // 허공 공격(hits 비어있음)은 활약으로 인정하지 않는다.
+            if (e.lastHitTargetIds.isNotEmpty) w.recordWeatherActivity(e);
             SkillTriggerRunner.onAttackCompleted(w, e);
             e.action = EntityAction.attackRecover;
             // attackCooldown은 windup 진입 시 attackPeriod로 스냅샷된 뒤 매 틱

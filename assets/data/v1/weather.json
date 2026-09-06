@@ -1,0 +1,19 @@
+{
+  "gauge": { "min": -100, "max": 100, "start": 0 },
+  "sample": { "ticks": 60, "maxKindsPerTemper": 3,
+              "biasFactor": 6, "biasClamp": 12, "fieldDecayFactor": 4 },
+  "thresholds": { "toClear": 60, "toNight": -60,
+                  "clearExit": 40, "nightExit": -40 },
+  "states": {
+    "CLEAR": {
+      "allyAtkPct": 15000, "prayerRegenPct": -10000, "allyHealPct": -20000,
+      "hotPctPerSec": 0
+    },
+    "DUSK": { "allyAtkPct": 0, "prayerRegenPct": 0, "allyHealPct": 0, "hotPctPerSec": 0 },
+    "NIGHT": {
+      "allyAtkPct": -10000, "prayerRegenPct": 10000, "allyHealPct": 0,
+      "hotPctPerSec": 250
+    }
+  },
+  "healCapPctPerSec": 2000
+}
