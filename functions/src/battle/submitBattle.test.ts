@@ -1,0 +1,177 @@
+import { randomUUID } from 'crypto';
+import { db } from '../common/admin';
+import { TICKS_PER_SEC } from './constants';
+import { encodeInputLog } from './inputLog';
+import { startBattleHandler } from './startBattle';
+import { submitBattleHandler } from './submitBattle';
+import { fakeAuthedRequest, seedOwnedFormation, seedStageMeta, TEST_DATA_VERSION, TEST_STAGE_ID } from './testSupport';
+import { StartBattleRes, SubmitBattleReq } from './types';
+import { computeV12Checksum } from './validators';
+
+async function startFreshBattle(uid: string): Promise<StartBattleRes> {
+  await seedStageMeta();
+  await seedOwnedFormation(uid);
+  return startBattleHandler(
+    fakeAuthedRequest(uid, {
+      idempotencyKey: 'unused',
+      appVersion: '1.0.0',
+      dataVersion: TEST_DATA_VERSION,
+      mode: 'STORY',
+      stageId: TEST_STAGE_ID,
+      presetIndex: 0,
+    }),
+  );
+}
+
+/** 두 슬롯 모두 딱 한 번씩 소환하고, 필살기 1회 쓰는 "정상 클리어" 제출을
+ * 만든다. 예산(V4~V9)은 testStageMeta 기준으로 넉넉히 통과하도록 잡았다. */
+function buildHappyPathSubmission(battle: StartBattleRes, overrides: Partial<SubmitBattleReq> = {}): SubmitBattleReq {
+  const endTick = 60 * TICKS_PER_SEC;
+  const inputLog = encodeInputLog({
+    seed: battle.seed,
+    dataVersion: TEST_DATA_VERSION,
+    stageId: TEST_STAGE_ID,
+    formationHash: battle.formationSnapshot.formationHash,
+    inputs: [
+      { type: 'SUMMON', tick: 0, slotIndex: 0 },
+      { type: 'SUMMON', tick: 0, slotIndex: 1 },
+      { type: 'ULTIMATE', tick: 1000 },
+    ],
+  }).toString('base64');
+
+  const summary: SubmitBattleReq['summary'] = {
+    endTick,
+    totalSummons: 2,
+    totalPrayerSpent: 500,
+    ultimateUsed: 1,
+    focusBoostStage: 0,
+    enemiesKilled: 5,
+    enemyBaseHpLeft: 0,
+    allyBaseHpLeft: 5000,
+    maxFrontlineX: 2000,
+    checksum: computeV12Checksum(inputLog, battle.seed, battle.formationSnapshot.formationHash),
+  };
+
+  return {
+    idempotencyKey: randomUUID(),
+    appVersion: '1.0.0',
+    dataVersion: TEST_DATA_VERSION,
+    battleId: battle.battleId,
+    outcome: 'ALLY_WIN',
+    summary,
+    inputLog,
+    formationHash: battle.formationSnapshot.formationHash,
+    ...overrides,
+  };
+}
+
+test('accepts a valid clear, grants first-clear rewards, and records progress', async () => {
+  const uid = 'submit-user-1';
+  const battle = await startFreshBattle(uid);
+  const req = buildHappyPathSubmission(battle);
+
+  const res = await submitBattleHandler(fakeAuthedRequest(uid, req));
+
+  expect(res.accepted).toBe(true);
+  expect(res.firstClear).toBe(true);
+  expect(res.rewards).toEqual([{ item: 'gold', amount: 100 }]);
+  expect(res.patch.currency?.gold).toBe(100);
+
+  const userDoc = await db.doc(`users/${uid}`).get();
+  expect(userDoc.data()?.progress.clearedStages[TEST_STAGE_ID].bestClearSec).toBe(60);
+  expect(userDoc.data()?.currency.gold).toBe(100);
+});
+
+test('a second clear of the same stage grants repeat rewards, not first-clear rewards', async () => {
+  const uid = 'submit-user-2';
+  const battle1 = await startFreshBattle(uid);
+  await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle1)));
+
+  const battle2 = await startFreshBattle(uid);
+  const res2 = await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle2)));
+
+  expect(res2.firstClear).toBe(false);
+  expect(res2.rewards).toEqual([{ item: 'gold', amount: 20 }]);
+});
+
+test('V0: resubmitting an already-submitted battle is rejected without exposing the reason', async () => {
+  const uid = 'submit-user-3';
+  const battle = await startFreshBattle(uid);
+  const first = buildHappyPathSubmission(battle);
+  await submitBattleHandler(fakeAuthedRequest(uid, first));
+
+  const secondAttempt = { ...first, idempotencyKey: randomUUID() };
+  await expect(submitBattleHandler(fakeAuthedRequest(uid, secondAttempt))).rejects.toThrow(/VALIDATION_FAILED/);
+
+  const battleDoc = await db.doc(`users/${uid}/battles/${battle.battleId}`).get();
+  expect(battleDoc.data()?.result.reason).toBe('V0');
+});
+
+test('V1: a tampered formationHash is rejected, and the internal reason (not shown to the client) is V1', async () => {
+  const uid = 'submit-user-4';
+  const battle = await startFreshBattle(uid);
+  const req = buildHappyPathSubmission(battle, { formationHash: 'tampered-hash' });
+
+  let clientError: Error | undefined;
+  try {
+    await submitBattleHandler(fakeAuthedRequest(uid, req));
+  } catch (e) {
+    clientError = e as Error;
+  }
+  expect(clientError?.message).toMatch(/VALIDATION_FAILED/);
+  expect(clientError?.message).not.toMatch(/V1/);
+
+  const battleDoc = await db.doc(`users/${uid}/battles/${battle.battleId}`).get();
+  expect(battleDoc.data()?.result.reason).toBe('V1');
+});
+
+test('V2: a stale dataVersion is rejected', async () => {
+  const uid = 'submit-user-5';
+  const battle = await startFreshBattle(uid);
+  const req = buildHappyPathSubmission(battle, { dataVersion: 'old-version' });
+
+  await expect(submitBattleHandler(fakeAuthedRequest(uid, req))).rejects.toThrow(/VALIDATION_FAILED/);
+  const battleDoc = await db.doc(`users/${uid}/battles/${battle.battleId}`).get();
+  expect(battleDoc.data()?.result.reason).toBe('V2');
+});
+
+test('V7 end-to-end: a resubmitted battle with an impossible summon cadence is rejected as V7', async () => {
+  const uid = 'submit-user-6';
+  const battle = await startFreshBattle(uid);
+  // 슬롯0(CHR_ACORN, 쿨다운 4초=120틱)을 0틱과 1틱에 연속 소환 -> 물리적으로 불가능.
+  const inputLog = encodeInputLog({
+    seed: battle.seed,
+    dataVersion: TEST_DATA_VERSION,
+    stageId: TEST_STAGE_ID,
+    formationHash: battle.formationSnapshot.formationHash,
+    inputs: [
+      { type: 'SUMMON', tick: 0, slotIndex: 0 },
+      { type: 'SUMMON', tick: 1, slotIndex: 0 },
+    ],
+  }).toString('base64');
+  const req = buildHappyPathSubmission(battle, {
+    inputLog,
+    summary: {
+      ...buildHappyPathSubmission(battle).summary,
+      totalSummons: 2,
+      checksum: computeV12Checksum(inputLog, battle.seed, battle.formationSnapshot.formationHash),
+    },
+  });
+
+  await expect(submitBattleHandler(fakeAuthedRequest(uid, req))).rejects.toThrow(/VALIDATION_FAILED/);
+  const battleDoc = await db.doc(`users/${uid}/battles/${battle.battleId}`).get();
+  expect(battleDoc.data()?.result.reason).toBe('V7');
+});
+
+test('idempotency: resubmitting with the same idempotencyKey does not grant rewards twice', async () => {
+  const uid = 'submit-user-7';
+  const battle = await startFreshBattle(uid);
+  const req = buildHappyPathSubmission(battle);
+
+  const first = await submitBattleHandler(fakeAuthedRequest(uid, req));
+  const second = await submitBattleHandler(fakeAuthedRequest(uid, req)); // 같은 idempotencyKey로 재시도
+
+  expect(second).toEqual(first);
+  const userDoc = await db.doc(`users/${uid}`).get();
+  expect(userDoc.data()?.currency.gold).toBe(100); // 200이 아니라 100 -- 한 번만 지급
+});

@@ -1,6 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'formation_repository.dart';
+import 'pending_submits_repository.dart';
 import 'settings_repository.dart';
 import 'tutorial_repository.dart';
 
@@ -13,5 +14,6 @@ Future<void> initHiveForApp() async {
     Hive.openBox(SettingsRepository.boxName),
     Hive.openBox(FormationRepository.boxName),
     Hive.openBox(TutorialRepository.boxName),
+    Hive.openBox(PendingSubmitsRepository.boxName),
   ]);
 }

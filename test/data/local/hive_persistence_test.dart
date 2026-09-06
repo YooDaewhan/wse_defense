@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:wse_defense/data/local/formation_repository.dart';
 import 'package:wse_defense/data/local/journal_repository.dart';
+import 'package:wse_defense/data/local/pending_submits_repository.dart';
 import 'package:wse_defense/data/local/settings_repository.dart';
 import 'package:wse_defense/data/local/tutorial_repository.dart';
 
@@ -90,5 +91,24 @@ void main() {
     final reopened = JournalRepository(box);
 
     expect(reopened.unlockedSceneIds, {'story.prologue'});
+  });
+
+  test('T-38: a queued pending battle submission survives a simulated app restart', () async {
+    Hive.init(dir.path);
+    var box = await Hive.openBox(PendingSubmitsRepository.boxName);
+    PendingSubmitsRepository(box).enqueue({
+      'idempotencyKey': 'key-1',
+      'battleId': 'b1',
+      'outcome': 'ALLY_WIN',
+    });
+    await box.close();
+
+    Hive.init(dir.path);
+    box = await Hive.openBox(PendingSubmitsRepository.boxName);
+    final reopened = PendingSubmitsRepository(box);
+
+    expect(reopened.pending, [
+      {'idempotencyKey': 'key-1', 'battleId': 'b1', 'outcome': 'ALLY_WIN'},
+    ]);
   });
 }
