@@ -9,13 +9,9 @@ import { BANNERS } from '../gacha/bannerData';
 import { isActivePickupCharacter } from '../gacha/pickupWindow';
 import { gameDateKey } from '../schedule/gameDay';
 import { CHARACTER_INTRINSIC_TAGS } from './characterData';
+import { RawFormationSlot, validateFormationOwnership } from './formationValidation';
 import { PUZZLE_FORMATION, PUZZLE_STAGE_ID } from './puzzleData';
 import { FormationSnapshot, StageMeta, StartBattleReq, StartBattleRes } from './types';
-
-interface RawFormationSlot {
-  characterId: string | null;
-  equipmentInstanceId: string | null;
-}
 
 /** 06_BACKEND.md §4.3 처리 3~4단계: 소유 검증 + 스냅샷 생성.
  * 스탯(성장치·장비 보정)은 T-39 성장 API 이후로 미룬다 — 여기서는
@@ -26,23 +22,7 @@ async function loadFormationSnapshot(uid: string, presetIndex: number): Promise<
   if (!formationDoc.exists) throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
 
   const slots = (formationDoc.data()?.slots ?? []) as RawFormationSlot[];
-  const seenCharacters = new Set<string>();
-
-  for (const slot of slots) {
-    if (!slot.characterId) continue;
-    if (seenCharacters.has(slot.characterId)) throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
-    seenCharacters.add(slot.characterId);
-
-    const characterDoc = await db.doc(`users/${uid}/characters/${slot.characterId}`).get();
-    if (!characterDoc.exists) throw new HttpsError('failed-precondition', 'NOT_OWNED');
-
-    if (slot.equipmentInstanceId) {
-      const equipmentDoc = await db.doc(`users/${uid}/equipments/${slot.equipmentInstanceId}`).get();
-      if (!equipmentDoc.exists || equipmentDoc.data()?.equippedTo !== slot.characterId) {
-        throw new HttpsError('failed-precondition', 'NOT_OWNED');
-      }
-    }
-  }
+  await validateFormationOwnership(uid, slots);
 
   const formationHash = createHash('sha256').update(JSON.stringify(slots)).digest('hex');
   return { presetIndex, slots, formationHash };

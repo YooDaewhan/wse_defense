@@ -135,7 +135,12 @@ GoRouter buildAppRouter() => GoRouter(
         final datapack = scope.datapack;
         final tagBundle = scope.tagBundle;
         if (datapack == null || tagBundle == null) return const PlaceholderScreen(title: '편성');
-        return FormationScreen(datapack: datapack, tagBundle: tagBundle, repository: scope.formation);
+        return FormationScreen(
+          datapack: datapack,
+          tagBundle: tagBundle,
+          repository: scope.formation,
+          onSyncFormation: (presetIndex, slots) => _syncFormationToServer(presetIndex, slots),
+        );
       },
     ),
     GoRoute(
@@ -282,6 +287,22 @@ BattleResultSummary _demoBattleResult() => const BattleResultSummary(
   summons: 0,
   kills: 0,
 );
+
+/// "편성 서버 동기화": `startBattle`이 실제로 읽는 건 로컬 Hive가 아니라
+/// 이 서버 문서다(functions/src/battle/saveFormation.ts). 실패해도(오프라인
+/// 등) 로컬 편집은 이미 끝난 뒤라 사용자를 막지 않는다 -- 그 시점에
+/// 출격을 시도하면 `_deployToStage`의 오류 처리가 대신 알려준다.
+Future<void> _syncFormationToServer(int presetIndex, List<String?> slots) async {
+  try {
+    await saveFormation(
+      RequestMeta(idempotencyKey: newIdempotencyKey(), appVersion: '1.0.0', dataVersion: kDataVersion),
+      presetIndex: presetIndex,
+      slots: [for (final characterId in slots) {'characterId': characterId, 'equipmentInstanceId': null}],
+    );
+  } catch (_) {
+    // 조용히 넘어간다 -- 다음 편집이나 출격 시도가 다시 동기화를 시킨다.
+  }
+}
 
 /// 10_WIRING_PLAN.md T-60 "출격": `startBattle`을 부르고, 서버가 확정한
 /// 시드·편성으로 실제 `BattleWorld`를 만들어 `/battle`로 넘어간다.

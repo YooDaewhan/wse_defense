@@ -168,6 +168,15 @@ Future<Map<String, dynamic>> submitBattle(
   'formationHash': formationHash,
 });
 
+/// 편성 서버 동기화(10_WIRING_PLAN.md) -- `characterId`만 있고
+/// `equipmentInstanceId`는 항상 null인 슬롯도 그대로 보낼 수 있다(로컬
+/// FormationStore 자체가 슬롯별 장비를 아직 안 들고 있음).
+Future<Map<String, dynamic>> saveFormation(
+  RequestMeta meta, {
+  required int presetIndex,
+  required List<Map<String, dynamic>> slots,
+}) => _call('saveFormation', {...meta.toJson(), 'presetIndex': presetIndex, 'slots': slots});
+
 // ---- growth ------------------------------------------------------------
 
 Future<Map<String, dynamic>> levelUp(RequestMeta meta, {required String target}) =>

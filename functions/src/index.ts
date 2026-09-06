@@ -6,6 +6,7 @@ setGlobalOptions({ region: 'asia-northeast3' });
 export * from './account/bootstrapAccount';
 export * from './battle/startBattle';
 export * from './battle/submitBattle';
+export * from './battle/saveFormation';
 export * from './growth/levelUp';
 export * from './inventory/equipItem';
 export * from './inventory/enhanceEquipment';

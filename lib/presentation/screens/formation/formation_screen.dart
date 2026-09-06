@@ -18,11 +18,23 @@ import 'widgets/team_tag_panel.dart';
 /// — 별도 라우트/애니메이션이 없어 상태가 훨씬 단순하고, 위젯 테스트에서도
 /// 라우트 전환 타이밍에 좌우되지 않는다.
 class FormationScreen extends StatefulWidget {
-  const FormationScreen({super.key, required this.datapack, required this.tagBundle, required this.repository});
+  const FormationScreen({
+    super.key,
+    required this.datapack,
+    required this.tagBundle,
+    required this.repository,
+    this.onSyncFormation,
+  });
 
   final Datapack datapack;
   final TagBundle tagBundle;
   final FormationStore repository;
+
+  /// 10_WIRING_PLAN.md "편성 서버 동기화": 로컬 저장(항상 먼저 일어남)에
+  /// 더해, 서버(`saveFormation`)에도 반영해야 할 때 호출된다 -- `startBattle`
+  /// 이 실제로 읽는 건 이 서버 문서다. 실패해도(오프라인 등) 로컬 편집은
+  /// 막지 않는다(호출부가 알아서 처리).
+  final void Function(int presetIndex, List<String?> slots)? onSyncFormation;
 
   @override
   State<FormationScreen> createState() => _FormationScreenState();
@@ -53,6 +65,10 @@ class _FormationScreenState extends State<FormationScreen> {
   void _toggleEditing(int slotIndex) =>
       setState(() => _editingSlot = _editingSlot == slotIndex ? null : slotIndex);
 
+  // startBattle이 실제로 읽는 서버 프리셋 인덱스(0)와 맞춘다 -- "현재
+  // 편성"(_slots/repository.current)은 곧 이 인덱스의 서버 미러다.
+  static const _activePresetIndex = 0;
+
   void _assign(String? characterId) {
     final slotIndex = _editingSlot;
     if (slotIndex == null) return;
@@ -63,14 +79,21 @@ class _FormationScreenState extends State<FormationScreen> {
       widget.repository.current = _slots;
       _editingSlot = null;
     });
+    widget.onSyncFormation?.call(_activePresetIndex, _slots);
   }
 
-  void _applyPreset(int index) => setState(() {
-    _slots = widget.repository.preset(index);
-    widget.repository.current = _slots;
-  });
+  void _applyPreset(int index) {
+    setState(() {
+      _slots = widget.repository.preset(index);
+      widget.repository.current = _slots;
+    });
+    widget.onSyncFormation?.call(_activePresetIndex, _slots);
+  }
 
-  void _savePreset(int index) => widget.repository.savePreset(index, _slots);
+  void _savePreset(int index) {
+    widget.repository.savePreset(index, _slots);
+    widget.onSyncFormation?.call(index, _slots);
+  }
 
   @override
   Widget build(BuildContext context) {

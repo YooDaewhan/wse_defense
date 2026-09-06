@@ -143,4 +143,74 @@ void main() {
 
     expect(store.preset(0).first, 'CHR_BEAR');
   });
+
+  /// 10_WIRING_PLAN.md "편성 서버 동기화": startBattle이 실제로 읽는 건
+  /// 서버 문서라, 로컬 편집을 서버에도 반영해야 실제 출격이 막히지 않는다.
+  group('onSyncFormation (서버 동기화)', () {
+    testWidgets('assigning a character syncs preset 0 with the new slots', (tester) async {
+      _useTallSurface(tester);
+      final synced = <(int, List<String?>)>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: FormationScreen(
+            datapack: datapack,
+            tagBundle: tagBundle,
+            repository: InMemoryFormationStore(),
+            onSyncFormation: (index, slots) => synced.add((index, slots)),
+          ),
+        ),
+      );
+
+      await _assign(tester, 0, 'CHR_BEAR');
+
+      expect(synced, hasLength(1));
+      expect(synced.single.$1, 0);
+      expect(synced.single.$2[0], 'CHR_BEAR');
+    });
+
+    testWidgets('applying a preset syncs preset 0 with that preset\'s slots', (tester) async {
+      _useTallSurface(tester);
+      final store = InMemoryFormationStore()..savePreset(1, ['CHR_BEAR', 'CHR_BIRD']);
+      final synced = <(int, List<String?>)>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: FormationScreen(
+            datapack: datapack,
+            tagBundle: tagBundle,
+            repository: store,
+            onSyncFormation: (index, slots) => synced.add((index, slots)),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('preset_apply_1')));
+      await tester.pump();
+
+      expect(synced, hasLength(1));
+      expect(synced.single.$1, 0); // 프리셋 1을 적용했어도 동기화 대상은 활성 편성(0)
+      expect(synced.single.$2[0], 'CHR_BEAR');
+    });
+
+    testWidgets('saving preset 2 syncs preset 2, not preset 0', (tester) async {
+      _useTallSurface(tester);
+      final synced = <(int, List<String?>)>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: FormationScreen(
+            datapack: datapack,
+            tagBundle: tagBundle,
+            repository: InMemoryFormationStore(),
+            onSyncFormation: (index, slots) => synced.add((index, slots)),
+          ),
+        ),
+      );
+
+      await _assign(tester, 0, 'CHR_BEAR'); // synced[0] = (0, ...)
+      await tester.tap(find.byKey(const ValueKey('preset_save_2')));
+      await tester.pump();
+
+      expect(synced.last.$1, 2);
+      expect(synced.last.$2[0], 'CHR_BEAR');
+    });
+  });
 }
