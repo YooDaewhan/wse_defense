@@ -11,10 +11,12 @@ class EffectParams {
     this.amount = 0, // HEAL
     this.pctOfMaxHp = 0, // HEAL
     this.intervalTicks = 1, // HEAL
-    this.mods = const [], // STAT_BUFF
+    this.mods = const [], // STAT_BUFF, RALLY(자기 강화 모디파이어)
     this.exclusiveGroup, // HEAL(토닥임 중첩 방지)
     this.tagIndex = -1, // GRANT_TAG
     this.tagAmount = 0, // GRANT_TAG
+    this.atkPct = 0, // ATK_DOWN (밀리퍼센트, 보통 음수)
+    this.selfCostPct = 0, // RALLY (밀리퍼센트, 최대HP 기준 자기비용)
   });
 
   final int durationTicks;
@@ -28,4 +30,6 @@ class EffectParams {
   final String? exclusiveGroup;
   final int tagIndex;
   final int tagAmount;
+  final int atkPct;
+  final int selfCostPct;
 }

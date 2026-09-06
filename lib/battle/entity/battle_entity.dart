@@ -321,6 +321,8 @@ Map<String, Object?> _effectParamsToJson(EffectParams p) => {
   'exclusiveGroup': p.exclusiveGroup,
   'tagIndex': p.tagIndex,
   'tagAmount': p.tagAmount,
+  'atkPct': p.atkPct,
+  'selfCostPct': p.selfCostPct,
 };
 
 EffectParams _effectParamsFromJson(Map<String, Object?> j) => EffectParams(
@@ -338,6 +340,8 @@ EffectParams _effectParamsFromJson(Map<String, Object?> j) => EffectParams(
   exclusiveGroup: j['exclusiveGroup'] as String?,
   tagIndex: j['tagIndex'] as int,
   tagAmount: j['tagAmount'] as int,
+  atkPct: j['atkPct'] as int,
+  selfCostPct: j['selfCostPct'] as int,
 );
 
 Map<String, Object?> _effectInstanceToJson(EffectInstance e) => {

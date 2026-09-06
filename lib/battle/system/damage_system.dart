@@ -27,8 +27,7 @@ int thresholdsCrossed(int maxHp, int k, int newHp, int alreadyConsumed) {
 /// 03_BATTLE_ENGINE.md §7 피해 계산식.
 ///
 /// 1)/2) 조건부 주는/받는 피해(속성 상성 등)는 TagEffectResolver의 `vs`
-/// 조건부 모디파이어(T-15)가 채운다. 아직 없어 0으로 둔다. '뚫기'(pierce)도
-/// PIERCE_MARK(T-17, M2)가 생기기 전까진 항상 미적용.
+/// 조건부 모디파이어(T-15)가 채운다. 아직 없어 0으로 둔다.
 int computeDamage(BattleWorld w, BattleEntity atk, BattleEntity tgt, int baseAtk) {
   var dmg = baseAtk;
 
@@ -39,8 +38,13 @@ int computeDamage(BattleWorld w, BattleEntity atk, BattleEntity tgt, int baseAtk
   dmg = dmg * (pctScale + takenPct) ~/ pctScale;
 
   // 3) 대상의 피해 감소(def, 밀리퍼센트). 최대 90% 감소.
-  final reduce = tgt.stats.get(StatKey.def).clamp(0, 90000);
-  dmg = dmg * (pctScale - reduce) ~/ pctScale;
+  // 03_BATTLE_ENGINE.md §10.1 뚫기(PIERCE): "pierceTargets: [DEF]만 무시" —
+  // 공격자가 PIERCE 효과를 갖고 있으면 이 단계만 건너뛴다.
+  final piercing = atk.effects.any((e) => e.type == 'PIERCE');
+  if (!piercing) {
+    final reduce = tgt.stats.get(StatKey.def).clamp(0, 90000);
+    dmg = dmg * (pctScale - reduce) ~/ pctScale;
+  }
 
   // 4) 최소 피해 보장
   return dmg < 1 ? 1 : dmg;
