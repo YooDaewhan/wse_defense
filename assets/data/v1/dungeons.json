@@ -1,0 +1,130 @@
+{
+  "dailyRunLimit": 6,
+  "sweepConsumesRun": true,
+  "sweepRequiresClear": true,
+  "dungeons": [
+    {
+      "id": "DGN_SUN",
+      "nameKey": "dgn.sun",
+      "themeKey": "sunlit_playground",
+      "bonusWeekdays": [1, 4],
+      "shardFamily": "SUN",
+      "difficulties": [
+        { "level": 1, "stageId": "STG_DGN_SUN_1", "unlock": { "stageCleared": "STG_1_3" }, "recommendedBondLevel": 8,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 800, "max": 1200 },
+            { "item": "ITM_SHARD_SUN_T1", "min": 3, "max": 4 }
+          ] },
+        { "level": 2, "stageId": "STG_DGN_SUN_2", "unlock": { "difficultyCleared": 1 }, "recommendedBondLevel": 16,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 1400, "max": 2000 },
+            { "item": "ITM_SHARD_SUN_T1", "min": 5, "max": 6 }
+          ] },
+        { "level": 3, "stageId": "STG_DGN_SUN_3", "unlock": { "difficultyCleared": 2, "chapterCleared": "CH_1" }, "recommendedBondLevel": 26,
+          "gimmick": { "kind": "FORMATION_LIMIT" },
+          "drops": [
+            { "item": "ITM_GOLD", "min": 2400, "max": 3200 },
+            { "item": "ITM_SHARD_SUN_T1", "min": 6, "max": 8 },
+            { "item": "ITM_SHARD_SUN_T2", "min": 1, "max": 2 }
+          ] },
+        { "level": 4, "stageId": "STG_DGN_SUN_4", "unlock": { "difficultyCleared": 3, "chapterCleared": "CH_2" }, "recommendedBondLevel": 38,
+          "gimmick": { "kind": "ULTIMATE_SEAL" },
+          "drops": [
+            { "item": "ITM_GOLD", "min": 3600, "max": 4800 },
+            { "item": "ITM_SHARD_SUN_T1", "min": 4, "max": 6 },
+            { "item": "ITM_SHARD_SUN_T2", "min": 3, "max": 4 }
+          ] },
+        { "level": 5, "stageId": "STG_DGN_SUN_5", "unlock": { "difficultyCleared": 4, "chapterCleared": "CH_3" }, "recommendedBondLevel": 52,
+          "gimmick": { "kind": "WEATHER_BIAS", "biasPerSample": 4 }, "hasMiniBoss": true,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 5000, "max": 7000 },
+            { "item": "ITM_SHARD_SUN_T2", "min": 4, "max": 6 },
+            { "item": "ITM_SHARD_SUN_T3", "min": 1, "max": 1 },
+            { "item": "ITM_SHARD_SUN_T3", "min": 1, "max": 1, "bonusDayOnly": true }
+          ] }
+      ]
+    },
+    {
+      "id": "DGN_MOON",
+      "nameKey": "dgn.moon",
+      "themeKey": "moonlit_shelter",
+      "bonusWeekdays": [2, 5],
+      "shardFamily": "MOON",
+      "difficulties": [
+        { "level": 1, "stageId": "STG_DGN_MOON_1", "unlock": { "stageCleared": "STG_1_3" }, "recommendedBondLevel": 8,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 800, "max": 1200 },
+            { "item": "ITM_SHARD_MOON_T1", "min": 3, "max": 4 }
+          ] },
+        { "level": 2, "stageId": "STG_DGN_MOON_2", "unlock": { "difficultyCleared": 1 }, "recommendedBondLevel": 16,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 1400, "max": 2000 },
+            { "item": "ITM_SHARD_MOON_T1", "min": 5, "max": 6 }
+          ] },
+        { "level": 3, "stageId": "STG_DGN_MOON_3", "unlock": { "difficultyCleared": 2, "chapterCleared": "CH_1" }, "recommendedBondLevel": 26,
+          "gimmick": { "kind": "FORMATION_LIMIT" },
+          "drops": [
+            { "item": "ITM_GOLD", "min": 2400, "max": 3200 },
+            { "item": "ITM_SHARD_MOON_T1", "min": 6, "max": 8 },
+            { "item": "ITM_SHARD_MOON_T2", "min": 1, "max": 2 }
+          ] },
+        { "level": 4, "stageId": "STG_DGN_MOON_4", "unlock": { "difficultyCleared": 3, "chapterCleared": "CH_2" }, "recommendedBondLevel": 38,
+          "gimmick": { "kind": "ULTIMATE_SEAL" },
+          "drops": [
+            { "item": "ITM_GOLD", "min": 3600, "max": 4800 },
+            { "item": "ITM_SHARD_MOON_T1", "min": 4, "max": 6 },
+            { "item": "ITM_SHARD_MOON_T2", "min": 3, "max": 4 }
+          ] },
+        { "level": 5, "stageId": "STG_DGN_MOON_5", "unlock": { "difficultyCleared": 4, "chapterCleared": "CH_3" }, "recommendedBondLevel": 52,
+          "gimmick": { "kind": "WEATHER_BIAS", "biasPerSample": 4 }, "hasMiniBoss": true,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 5000, "max": 7000 },
+            { "item": "ITM_SHARD_MOON_T2", "min": 4, "max": 6 },
+            { "item": "ITM_SHARD_MOON_T3", "min": 1, "max": 1 },
+            { "item": "ITM_SHARD_MOON_T3", "min": 1, "max": 1, "bonusDayOnly": true }
+          ] }
+      ]
+    },
+    {
+      "id": "DGN_FIELD",
+      "nameKey": "dgn.field",
+      "themeKey": "wildflower_hill",
+      "bonusWeekdays": [3, 6],
+      "shardFamily": "FIELD",
+      "difficulties": [
+        { "level": 1, "stageId": "STG_DGN_FIELD_1", "unlock": { "stageCleared": "STG_1_3" }, "recommendedBondLevel": 8,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 800, "max": 1200 },
+            { "item": "ITM_SHARD_FIELD_T1", "min": 3, "max": 4 }
+          ] },
+        { "level": 2, "stageId": "STG_DGN_FIELD_2", "unlock": { "difficultyCleared": 1 }, "recommendedBondLevel": 16,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 1400, "max": 2000 },
+            { "item": "ITM_SHARD_FIELD_T1", "min": 5, "max": 6 }
+          ] },
+        { "level": 3, "stageId": "STG_DGN_FIELD_3", "unlock": { "difficultyCleared": 2, "chapterCleared": "CH_1" }, "recommendedBondLevel": 26,
+          "gimmick": { "kind": "FORMATION_LIMIT" },
+          "drops": [
+            { "item": "ITM_GOLD", "min": 2400, "max": 3200 },
+            { "item": "ITM_SHARD_FIELD_T1", "min": 6, "max": 8 },
+            { "item": "ITM_SHARD_FIELD_T2", "min": 1, "max": 2 }
+          ] },
+        { "level": 4, "stageId": "STG_DGN_FIELD_4", "unlock": { "difficultyCleared": 3, "chapterCleared": "CH_2" }, "recommendedBondLevel": 38,
+          "gimmick": { "kind": "ULTIMATE_SEAL" },
+          "drops": [
+            { "item": "ITM_GOLD", "min": 3600, "max": 4800 },
+            { "item": "ITM_SHARD_FIELD_T1", "min": 4, "max": 6 },
+            { "item": "ITM_SHARD_FIELD_T2", "min": 3, "max": 4 }
+          ] },
+        { "level": 5, "stageId": "STG_DGN_FIELD_5", "unlock": { "difficultyCleared": 4, "chapterCleared": "CH_3" }, "recommendedBondLevel": 52,
+          "gimmick": { "kind": "WEATHER_BIAS", "biasPerSample": 4 }, "hasMiniBoss": true,
+          "drops": [
+            { "item": "ITM_GOLD", "min": 5000, "max": 7000 },
+            { "item": "ITM_SHARD_FIELD_T2", "min": 4, "max": 6 },
+            { "item": "ITM_SHARD_FIELD_T3", "min": 1, "max": 1 },
+            { "item": "ITM_SHARD_FIELD_T3", "min": 1, "max": 1, "bonusDayOnly": true }
+          ] }
+      ]
+    }
+  ]
+}

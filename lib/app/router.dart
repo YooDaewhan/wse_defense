@@ -7,12 +7,15 @@ import '../battle/world/battle_config.dart';
 import '../battle/world/battle_world.dart';
 import '../battle/world/canonical_systems.dart';
 import '../data/local/journal_repository.dart';
+import '../domain/dungeon/dungeon_def.dart';
+import '../domain/dungeon/dungeon_progress.dart';
 import '../domain/story/story_beat.dart';
 import '../game/battle_result.dart';
 import '../presentation/screens/adventure/adventure_map_screen.dart';
 import '../presentation/screens/adventure/stage_brief_screen.dart';
 import '../presentation/screens/battle/battle_screen.dart';
 import '../presentation/screens/battle_result/battle_result_screen.dart';
+import '../presentation/screens/dungeon/dungeon_screen.dart';
 import '../presentation/screens/splash/splash_screen.dart';
 import '../presentation/screens/story/story_player_screen.dart';
 import '../presentation/widgets/placeholder_screen.dart';
@@ -99,7 +102,23 @@ GoRouter buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/dungeon',
-      builder: (context, state) => const PlaceholderScreen(title: '요일던전'),
+      builder: (context, state) {
+        final extra =
+            state.extra
+                as ({
+                  DungeonConfig config,
+                  DungeonProgressSnapshot progress,
+                  int gameDayWeekday,
+                  int remainingRuns,
+                })?;
+        return DungeonScreen(
+          config: extra?.config ?? _demoDungeonConfig(),
+          progress: extra?.progress ?? const DungeonProgressSnapshot(),
+          gameDayWeekday: extra?.gameDayWeekday ?? 1,
+          remainingRuns: extra?.remainingRuns ?? 6,
+          onDifficultyTap: (dungeon, difficulty) {},
+        );
+      },
     ),
     GoRoute(
       path: '/exchange',
@@ -195,6 +214,21 @@ List<StageDef> _demoChapterStages() => const [
     timeLimitSec: 300,
   ),
 ];
+
+/// `/dungeon`에 실제 데이터 없이(딥링크·직접 진입) 들어왔을 때의 자리
+/// 표시자. 실제 진입 경로는 `assets/data/v1/dungeons.json`을 로딩해 넘긴다.
+DungeonConfig _demoDungeonConfig() => const DungeonConfig(
+  dailyRunLimit: 6,
+  dungeons: [
+    DungeonDef(
+      id: 'DGN_DEMO',
+      nameKey: 'dgn.demo',
+      themeKey: 'demo',
+      shardFamily: 'DEMO',
+      difficulties: [DungeonDifficultyDef(level: 1, stageId: 'STG_DGN_DEMO_1')],
+    ),
+  ],
+);
 
 /// `/prologue`에 실제 저장소 없이(딥링크·직접 진입) 들어왔을 때의 자리
 /// 표시자 — 아무 것도 기록하지 않는다. 정상 진입 경로(부트스트랩 -> 캠프
