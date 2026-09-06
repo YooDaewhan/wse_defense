@@ -7,6 +7,7 @@ import { applyRewards, currencyPatchFrom } from '../common/rewards';
 import { AccountPatch, Delta } from '../common/types';
 import { CHARACTER_RESUMMON_COOLDOWN_SEC } from './characterData';
 import { TICKS_PER_SEC } from './constants';
+import { DEEP_FOREST_FLOORS_BY_STAGE } from '../dungeon/deepForestData';
 import { aggregateRolls, rollDrops } from '../dungeon/dropRoll';
 import { DUNGEONS_BY_ID, STAGE_ID_TO_DUNGEON } from '../dungeon/dungeonData';
 import { gameDateKey, gameDayWeekday, isBonusDay, nextGameDayResetMs } from '../schedule/gameDay';
@@ -81,6 +82,7 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
     // DUNGEON 모드 배틀이면 stageId로 어느 던전 몇 난이도인지 알아낸다 —
     // 드랍표 선택과 dailyCounters 차감에 쓴다(07_DUNGEON_EXCHANGE.md §4).
     const dungeonRef = STAGE_ID_TO_DUNGEON[battle.stageId];
+    const deepForestFloor = DEEP_FOREST_FLOORS_BY_STAGE[battle.stageId];
     const now = new Date();
     const counterRef = dungeonRef ? db.doc(`users/${uid}/dailyCounters/${gameDateKey(now)}`) : null;
 
@@ -136,6 +138,12 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
         { totalDungeonRuns: totalDungeonRuns + 1, dungeonRuns, expireAt: nextGameDayResetMs(now) },
         { merge: true },
       );
+    } else if (req.outcome === 'ALLY_WIN' && deepForestFloor) {
+      // 07_DUNGEON_EXCHANGE.md §8 "최고 층 기록 유지" -- 보상은 여기서
+      // 주지 않는다. 실제 지급은 claimDeepForestRewards(주간 일괄 수령)의
+      // 몫이라 클리어만으로 이중 지급되지 않게 한다.
+      const prevBestFloor = (userSnap.data()?.progress?.deepForestBestFloor as number) ?? 0;
+      tx.update(userRef, { 'progress.deepForestBestFloor': Math.max(prevBestFloor, deepForestFloor.floor) });
     } else if (req.outcome === 'ALLY_WIN') {
       const clearedStages = (userSnap.data()?.progress?.clearedStages ?? {}) as Record<string, { bestClearSec: number }>;
       firstClear = !clearedStages[battle.stageId];

@@ -2,10 +2,12 @@ import { createHash, randomInt } from 'crypto';
 import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
 import { db } from '../common/admin';
 import { requireAuth } from '../common/auth';
+import { DEEP_FOREST_FLOORS_BY_STAGE } from '../dungeon/deepForestData';
 import { DAILY_RUN_LIMIT } from '../dungeon/dungeonData';
 import { BANNERS } from '../gacha/bannerData';
 import { isActivePickupCharacter } from '../gacha/pickupWindow';
 import { gameDateKey } from '../schedule/gameDay';
+import { CHARACTER_INTRINSIC_TAGS } from './characterData';
 import { FormationSnapshot, StageMeta, StartBattleReq, StartBattleRes } from './types';
 
 interface RawFormationSlot {
@@ -55,6 +57,21 @@ function trialFormationSnapshot(characterId: string): FormationSnapshot {
   return { presetIndex: -1, slots, formationHash };
 }
 
+/** 07_DUNGEON_EXCHANGE.md §8 "층마다 편성 제한 태그가 다르다" -- 편성
+ * 전체 캐릭터의 고유 태그(CHARACTER_INTRINSIC_TAGS) 합이 층이 요구하는
+ * 최소치를 넘는지 본다. */
+function formationSatisfiesRequiredTags(slots: FormationSnapshot['slots'], requiredTags: Record<string, number>): boolean {
+  const tagSums: Record<string, number> = {};
+  for (const slot of slots) {
+    if (!slot.characterId) continue;
+    const tags = CHARACTER_INTRINSIC_TAGS[slot.characterId] ?? {};
+    for (const [tagId, level] of Object.entries(tags)) {
+      tagSums[tagId] = (tagSums[tagId] ?? 0) + level;
+    }
+  }
+  return Object.entries(requiredTags).every(([tagId, minLevel]) => (tagSums[tagId] ?? 0) >= minLevel);
+}
+
 export async function startBattleHandler(request: CallableRequest<StartBattleReq>): Promise<StartBattleRes> {
   const uid = requireAuth(request);
   const { stageId, presetIndex, mode, dataVersion } = request.data;
@@ -88,6 +105,15 @@ export async function startBattleHandler(request: CallableRequest<StartBattleReq
 
   const formationSnapshot =
     mode === 'TRIAL' ? trialFormationSnapshot(request.data.trialCharacterId!) : await loadFormationSnapshot(uid, presetIndex);
+
+  // 06_BACKEND.md §4.3 "스테이지 restrictions(requiredTags) 준수" -- 깊은
+  // 숲 층별 편성 제한만 우선 구현한다(다른 모드로 확장은 그때 필요할 때).
+  const deepForestFloor = DEEP_FOREST_FLOORS_BY_STAGE[stageId];
+  if (mode === 'DEEP_FOREST' && deepForestFloor) {
+    if (!formationSatisfiesRequiredTags(formationSnapshot.slots, deepForestFloor.requiredTags)) {
+      throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
+    }
+  }
 
   const seed = randomInt(2 ** 31);
   const issuedAt = Date.now();

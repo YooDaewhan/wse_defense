@@ -6,6 +6,7 @@ import { startBattleHandler } from './startBattle';
 import { submitBattleHandler } from './submitBattle';
 import {
   fakeAuthedRequest,
+  seedDeepForestStageMeta,
   seedDungeonStageMeta,
   seedOwnedFormation,
   seedStageMeta,
@@ -27,6 +28,21 @@ async function startFreshBattle(uid: string): Promise<StartBattleRes> {
       dataVersion: TEST_DATA_VERSION,
       mode: 'STORY',
       stageId: TEST_STAGE_ID,
+      presetIndex: 0,
+    }),
+  );
+}
+
+async function startFreshDeepForestBattle(uid: string, stageId: string): Promise<StartBattleRes> {
+  await seedDeepForestStageMeta(stageId);
+  await seedOwnedFormation(uid);
+  return startBattleHandler(
+    fakeAuthedRequest(uid, {
+      idempotencyKey: 'unused',
+      appVersion: '1.0.0',
+      dataVersion: TEST_DATA_VERSION,
+      mode: 'DEEP_FOREST',
+      stageId,
       presetIndex: 0,
     }),
   );
@@ -299,4 +315,29 @@ test('T-51: a TRIAL clear grants no rewards and leaves progress untouched', asyn
 
   const userDoc = await db.doc(`users/${uid}`).get();
   expect(userDoc.data()?.progress?.clearedStages?.[TEST_STAGE_ID]).toBeUndefined();
+});
+
+/** 09_MILESTONES.md T-52 완료조건: "최고 층 기록 유지". 보상은 여기서
+ * 주지 않는다(claimDeepForestRewards가 주간 일괄 수령을 맡는다). */
+test('T-52: a DEEP_FOREST clear records the floor and grants no direct reward', async () => {
+  const uid = 'submit-user-11';
+  const battle = await startFreshDeepForestBattle(uid, 'STG_DEEPFOREST_2');
+
+  const res = await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle)));
+
+  expect(res.rewards).toEqual([]);
+  const userDoc = await db.doc(`users/${uid}`).get();
+  expect(userDoc.data()?.progress.deepForestBestFloor).toBe(2);
+});
+
+test('T-52: the best floor record never decreases on a later, lower-floor clear', async () => {
+  const uid = 'submit-user-12';
+  const battle1 = await startFreshDeepForestBattle(uid, 'STG_DEEPFOREST_2');
+  await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle1)));
+
+  const battle2 = await startFreshDeepForestBattle(uid, 'STG_DEEPFOREST_1');
+  await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle2)));
+
+  const userDoc = await db.doc(`users/${uid}`).get();
+  expect(userDoc.data()?.progress.deepForestBestFloor).toBe(2);
 });

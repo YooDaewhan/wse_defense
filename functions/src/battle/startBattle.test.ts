@@ -4,7 +4,9 @@ import { startBattleHandler } from './startBattle';
 import { StartBattleReq } from './types';
 import {
   fakeAuthedRequest,
+  seedDeepForestStageMeta,
   seedDungeonStageMeta,
+  seedOwnedAnimalFormation,
   seedOwnedFormation,
   seedStageMeta,
   TEST_DATA_VERSION,
@@ -122,4 +124,41 @@ test('T-51: rejects a TRIAL battle for a character that is not currently a picku
   await expect(
     startBattleHandler(fakeAuthedRequest(uid, req({ mode: 'TRIAL', trialCharacterId: 'CHR_ACORN' }))),
   ).rejects.toThrow(/BANNER_CLOSED/);
+});
+
+/** 09_MILESTONES.md T-52 완료조건: "층별 태그 편성 제한". STG_DEEPFOREST_1
+ * 은 제한이 없고, STG_DEEPFOREST_3은 TAG_RACE_ANIMAL 합 2 이상을 요구한다
+ * (deepForestData.ts). */
+test('T-52: starts a DEEP_FOREST battle for a floor with no tag restriction', async () => {
+  await seedDeepForestStageMeta('STG_DEEPFOREST_1');
+  const uid = 'start-user-9';
+  await seedOwnedFormation(uid);
+
+  const res = await startBattleHandler(
+    fakeAuthedRequest(uid, req({ mode: 'DEEP_FOREST', stageId: 'STG_DEEPFOREST_1' })),
+  );
+
+  expect(res.battleId).toBeTruthy();
+});
+
+test('T-52: rejects a DEEP_FOREST floor when the formation does not meet the required tag total', async () => {
+  await seedDeepForestStageMeta('STG_DEEPFOREST_3');
+  const uid = 'start-user-10';
+  await seedOwnedFormation(uid); // CHR_ACORN/CHR_DROPLET -- TAG_RACE_ANIMAL 없음
+
+  await expect(
+    startBattleHandler(fakeAuthedRequest(uid, req({ mode: 'DEEP_FOREST', stageId: 'STG_DEEPFOREST_3' }))),
+  ).rejects.toThrow(/VALIDATION_FAILED/);
+});
+
+test('T-52: starts a DEEP_FOREST battle once the formation meets the required tag total', async () => {
+  await seedDeepForestStageMeta('STG_DEEPFOREST_3');
+  const uid = 'start-user-11';
+  await seedOwnedAnimalFormation(uid); // CHR_BIRD+CHR_BEAR -- TAG_RACE_ANIMAL 합 2
+
+  const res = await startBattleHandler(
+    fakeAuthedRequest(uid, req({ mode: 'DEEP_FOREST', stageId: 'STG_DEEPFOREST_3' })),
+  );
+
+  expect(res.battleId).toBeTruthy();
 });
