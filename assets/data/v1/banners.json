@@ -1,0 +1,43 @@
+{
+  "banners": [
+    {
+      "id": "BNR_STANDARD",
+      "kind": "STANDARD",
+      "nameKey": "bnr.standard",
+      "startAtUtc": null,
+      "endAtUtc": null,
+      "cost": {
+        "single": { "item": "ITM_RECRUIT_TICKET", "amount": 1 },
+        "ten": { "item": "ITM_RECRUIT_TICKET", "amount": 10 }
+      },
+      "givesExchangePoint": false,
+      "rates": [
+        { "rarity": 3, "pickup": true, "totalPct": 1500, "pool": ["CHR_BEAR"] },
+        { "rarity": 3, "pickup": false, "totalPct": 1500, "pool": ["CHR_BIRD"] },
+        { "rarity": 2, "totalPct": 17000, "pool": ["CHR_MUSHROOM", "CHR_DROPLET"] },
+        { "rarity": 1, "totalPct": 80000, "pool": ["CHR_ACORN"] }
+      ],
+      "duplicateConversion": { "rarity3": 30, "rarity2": 10, "rarity1": 3, "item": "ITM_COLLECT_FRAGMENT" }
+    },
+    {
+      "id": "BNR_THEME_BEAR",
+      "kind": "THEME",
+      "nameKey": "bnr.theme_bear",
+      "startAtUtc": null,
+      "endAtUtc": null,
+      "cost": {
+        "single": { "item": "ITM_RECRUIT_TICKET", "amount": 1 },
+        "ten": { "item": "ITM_RECRUIT_TICKET", "amount": 10 }
+      },
+      "givesExchangePoint": true,
+      "rates": [
+        { "rarity": 3, "pickup": true, "totalPct": 3000, "pool": ["CHR_BEAR"] },
+        { "rarity": 2, "totalPct": 17000, "pool": ["CHR_MUSHROOM", "CHR_DROPLET"] },
+        { "rarity": 1, "totalPct": 80000, "pool": ["CHR_ACORN", "CHR_BIRD"] }
+      ],
+      "duplicateConversion": { "rarity3": 30, "rarity2": 10, "rarity1": 3, "item": "ITM_COLLECT_FRAGMENT" },
+      "exchangeTargets": ["CHR_BEAR"]
+    }
+  ],
+  "exchange": { "pointPerPull": 1, "requiredPoints": 200, "carryOver": true }
+}

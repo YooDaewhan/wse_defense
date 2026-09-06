@@ -12,6 +12,7 @@ import '../domain/dungeon/dungeon_def.dart';
 import '../domain/dungeon/dungeon_progress.dart';
 import '../domain/exchange/equipment_def.dart';
 import '../domain/exchange/exchange_def.dart';
+import '../domain/gacha/banner_def.dart';
 import '../domain/story/story_beat.dart';
 import '../game/battle_result.dart';
 import '../presentation/screens/adventure/adventure_map_screen.dart';
@@ -21,6 +22,7 @@ import '../presentation/screens/battle_result/battle_result_screen.dart';
 import '../presentation/screens/dungeon/dungeon_screen.dart';
 import '../presentation/screens/exchange/exchange_screen.dart';
 import '../presentation/screens/splash/splash_screen.dart';
+import '../presentation/screens/summon/summon_screen.dart';
 import '../presentation/screens/story/story_player_screen.dart';
 import '../presentation/widgets/placeholder_screen.dart';
 
@@ -153,7 +155,15 @@ GoRouter buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/summon',
-      builder: (context, state) => const PlaceholderScreen(title: '소환'),
+      builder: (context, state) {
+        final extra = state.extra as ({BannerCatalog catalog, Map<String, int> heldItems, int exchangePoint})?;
+        return SummonScreen(
+          catalog: extra?.catalog ?? _demoBannerCatalog(),
+          heldItems: extra?.heldItems ?? const {},
+          exchangePoint: extra?.exchangePoint ?? 0,
+          onPull: (banner, count) {},
+        );
+      },
       routes: [
         GoRoute(
           path: 'trial/:id',
@@ -270,6 +280,25 @@ ExchangeConfig _demoExchangeConfig() => const ExchangeConfig(
       ],
     ),
   ],
+);
+
+/// `/summon`에 실제 데이터 없이(딥링크·직접 진입) 들어왔을 때의 자리
+/// 표시자. 실제 진입 경로는 `assets/data/v1/banners.json`을 로딩해 넘긴다.
+BannerCatalog _demoBannerCatalog() => const BannerCatalog(
+  banners: [
+    BannerDef(
+      id: 'BNR_DEMO',
+      kind: 'STANDARD',
+      nameKey: 'bnr.demo',
+      cost: BannerCost(
+        single: CostEntry(item: 'ITM_RECRUIT_TICKET', amount: 1),
+        ten: CostEntry(item: 'ITM_RECRUIT_TICKET', amount: 10),
+      ),
+      rates: [RateEntry(rarity: 1, totalPct: 100000, pool: ['CHR_DEMO'])],
+      duplicateConversion: DuplicateConversion(rarity3: 10, rarity2: 5, rarity1: 1, item: 'ITM_COLLECT_FRAGMENT'),
+    ),
+  ],
+  exchange: GachaExchangeRule(pointPerPull: 1, requiredPoints: 200),
 );
 
 /// `/prologue`에 실제 저장소 없이(딥링크·직접 진입) 들어왔을 때의 자리
