@@ -9,3 +9,5 @@ export * from './dungeon/sweepDungeon';
 export * from './exchange/exchangeItems';
 export * from './gacha/gachaPull';
 export * from './gacha/exchangePickup';
+export * from './purchase/verifyPurchase';
+export * from './purchase/retryUngrantedPurchases';

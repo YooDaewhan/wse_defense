@@ -33,6 +33,11 @@
         { "fieldPath": "startAt", "order": "ASCENDING" },
         { "fieldPath": "endAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "purchases",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [{ "fieldPath": "status", "order": "ASCENDING" }]
     }
   ],
   "fieldOverrides": []
