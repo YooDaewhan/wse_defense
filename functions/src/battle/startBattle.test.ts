@@ -1,7 +1,16 @@
 import { db } from '../common/admin';
+import { gameDateKey } from '../schedule/gameDay';
 import { startBattleHandler } from './startBattle';
 import { StartBattleReq } from './types';
-import { fakeAuthedRequest, seedOwnedFormation, seedStageMeta, TEST_DATA_VERSION, TEST_STAGE_ID } from './testSupport';
+import {
+  fakeAuthedRequest,
+  seedDungeonStageMeta,
+  seedOwnedFormation,
+  seedStageMeta,
+  TEST_DATA_VERSION,
+  TEST_DUNGEON_STAGE_ID,
+  TEST_STAGE_ID,
+} from './testSupport';
 
 function req(overrides: Partial<StartBattleReq> = {}): StartBattleReq {
   return {
@@ -65,4 +74,29 @@ test('rejects when dataVersion does not match gameData/current', async () => {
   await seedOwnedFormation(uid);
 
   await expect(startBattleHandler(fakeAuthedRequest(uid, req({ dataVersion: 'stale-version' })))).rejects.toThrow();
+});
+
+test('T-42: rejects starting a DUNGEON battle once the shared daily limit (6) is already used', async () => {
+  await seedDungeonStageMeta();
+  const uid = 'start-user-5';
+  await seedOwnedFormation(uid);
+  const dateKey = gameDateKey(new Date());
+  await db.doc(`users/${uid}/dailyCounters/${dateKey}`).set({ totalDungeonRuns: 6, dungeonRuns: { DGN_SUN: 6 } });
+
+  await expect(
+    startBattleHandler(fakeAuthedRequest(uid, req({ mode: 'DUNGEON', stageId: TEST_DUNGEON_STAGE_ID }))),
+  ).rejects.toThrow(/DAILY_LIMIT_REACHED/);
+});
+
+test('T-42: allows starting a DUNGEON battle when runs remain', async () => {
+  await seedDungeonStageMeta();
+  const uid = 'start-user-6';
+  await seedOwnedFormation(uid);
+  const dateKey = gameDateKey(new Date());
+  await db.doc(`users/${uid}/dailyCounters/${dateKey}`).set({ totalDungeonRuns: 5, dungeonRuns: { DGN_SUN: 5 } });
+
+  const res = await startBattleHandler(
+    fakeAuthedRequest(uid, req({ mode: 'DUNGEON', stageId: TEST_DUNGEON_STAGE_ID })),
+  );
+  expect(res.battleId).toBeTruthy();
 });

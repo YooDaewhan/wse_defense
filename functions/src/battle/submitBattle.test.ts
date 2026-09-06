@@ -4,7 +4,16 @@ import { TICKS_PER_SEC } from './constants';
 import { encodeInputLog } from './inputLog';
 import { startBattleHandler } from './startBattle';
 import { submitBattleHandler } from './submitBattle';
-import { fakeAuthedRequest, seedOwnedFormation, seedStageMeta, TEST_DATA_VERSION, TEST_STAGE_ID } from './testSupport';
+import {
+  fakeAuthedRequest,
+  seedDungeonStageMeta,
+  seedOwnedFormation,
+  seedStageMeta,
+  TEST_DATA_VERSION,
+  TEST_DUNGEON_ID,
+  TEST_DUNGEON_STAGE_ID,
+  TEST_STAGE_ID,
+} from './testSupport';
 import { StartBattleRes, SubmitBattleReq } from './types';
 import { computeV12Checksum } from './validators';
 
@@ -18,6 +27,21 @@ async function startFreshBattle(uid: string): Promise<StartBattleRes> {
       dataVersion: TEST_DATA_VERSION,
       mode: 'STORY',
       stageId: TEST_STAGE_ID,
+      presetIndex: 0,
+    }),
+  );
+}
+
+async function startFreshDungeonBattle(uid: string): Promise<StartBattleRes> {
+  await seedDungeonStageMeta();
+  await seedOwnedFormation(uid);
+  return startBattleHandler(
+    fakeAuthedRequest(uid, {
+      idempotencyKey: 'unused',
+      appVersion: '1.0.0',
+      dataVersion: TEST_DATA_VERSION,
+      mode: 'DUNGEON',
+      stageId: TEST_DUNGEON_STAGE_ID,
       presetIndex: 0,
     }),
   );
@@ -74,7 +98,7 @@ test('accepts a valid clear, grants first-clear rewards, and records progress', 
 
   expect(res.accepted).toBe(true);
   expect(res.firstClear).toBe(true);
-  expect(res.rewards).toEqual([{ item: 'gold', amount: 100 }]);
+  expect(res.rewards).toEqual([{ item: 'ITM_GOLD', amount: 100 }]);
   expect(res.patch.currency?.gold).toBe(100);
 
   const userDoc = await db.doc(`users/${uid}`).get();
@@ -91,7 +115,7 @@ test('a second clear of the same stage grants repeat rewards, not first-clear re
   const res2 = await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle2)));
 
   expect(res2.firstClear).toBe(false);
-  expect(res2.rewards).toEqual([{ item: 'gold', amount: 20 }]);
+  expect(res2.rewards).toEqual([{ item: 'ITM_GOLD', amount: 20 }]);
 });
 
 test('V0: resubmitting an already-submitted battle is rejected without exposing the reason', async () => {
@@ -174,4 +198,38 @@ test('idempotency: resubmitting with the same idempotencyKey does not grant rewa
   expect(second).toEqual(first);
   const userDoc = await db.doc(`users/${uid}`).get();
   expect(userDoc.data()?.currency.gold).toBe(100); // 200이 아니라 100 -- 한 번만 지급
+});
+
+test('T-42: a DUNGEON-mode clear rolls the dungeon drop table, deducts the shared daily counter, and records clearedDungeons', async () => {
+  const uid = 'submit-user-8';
+  const battle = await startFreshDungeonBattle(uid);
+  const req = buildHappyPathSubmission(battle);
+
+  const res = await submitBattleHandler(fakeAuthedRequest(uid, req));
+
+  expect(res.accepted).toBe(true);
+  // stagesMeta의 firstRewards/repeatRewards가 아니라 dungeonData.ts의 드랍표에서 왔다
+  // (테스트 지원 함수가 그 stagesMeta 값을 일부러 빈 배열로 세팅해뒀다).
+  expect(res.rewards.some((r) => r.item === 'ITM_GOLD')).toBe(true);
+  expect(res.rewards.some((r) => r.item === 'ITM_SHARD_SUN_T1')).toBe(true);
+
+  const userDoc = await db.doc(`users/${uid}`).get();
+  expect(userDoc.data()?.progress.clearedDungeons[TEST_DUNGEON_ID]).toBe(1);
+
+  const counters = await db.collection(`users/${uid}/dailyCounters`).get();
+  expect(counters.size).toBe(1);
+  expect(counters.docs[0].data().totalDungeonRuns).toBe(1);
+  expect(counters.docs[0].data().dungeonRuns[TEST_DUNGEON_ID]).toBe(1);
+});
+
+test('T-42: a second DUNGEON clear the same day accumulates the shared counter', async () => {
+  const uid = 'submit-user-9';
+  const battle1 = await startFreshDungeonBattle(uid);
+  await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle1)));
+
+  const battle2 = await startFreshDungeonBattle(uid);
+  await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle2)));
+
+  const counters = await db.collection(`users/${uid}/dailyCounters`).get();
+  expect(counters.docs[0].data().totalDungeonRuns).toBe(2);
 });

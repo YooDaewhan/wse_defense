@@ -1,10 +1,15 @@
+import { randomInt } from 'crypto';
 import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
 import { admin, db } from '../common/admin';
 import { requireAuth } from '../common/auth';
 import { withIdempotency } from '../common/idempotency';
-import { AccountPatch } from '../common/types';
+import { applyRewards, currencyPatchFrom } from '../common/rewards';
+import { AccountPatch, Delta } from '../common/types';
 import { CHARACTER_RESUMMON_COOLDOWN_SEC } from './characterData';
 import { TICKS_PER_SEC } from './constants';
+import { aggregateRolls, rollDrops } from '../dungeon/dropRoll';
+import { DUNGEONS_BY_ID, STAGE_ID_TO_DUNGEON } from '../dungeon/dungeonData';
+import { gameDateKey, gameDayWeekday, isBonusDay, nextGameDayResetMs } from '../schedule/gameDay';
 import { decodeInputLog } from './inputLog';
 import { BattleDoc, StageMeta, SubmitBattleReq, SubmitBattleRes } from './types';
 import {
@@ -25,7 +30,7 @@ interface InternalResult {
   /** V0~V13 중 어느 항목에서 반려됐는지 — 원장/로그 전용, 클라이언트에는 절대
    * 노출하지 않는다(06_BACKEND.md §4.4 "어떤 검증에 걸렸는지 노출 금지"). */
   rejectedAt?: string;
-  rewards: Array<{ item: string; amount: number }>;
+  rewards: Delta[];
   firstClear: boolean;
   patch: AccountPatch;
 }
@@ -73,7 +78,17 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
       return { result: { accepted: false, rejectedAt: 'V0', rewards: [], firstClear: false, patch: {} } };
     }
     const battle = battleSnap.data() as BattleDoc;
-    const [metaSnap, userSnap] = await Promise.all([tx.get(db.doc(`stagesMeta/${battle.stageId}`)), tx.get(userRef)]);
+    // DUNGEON 모드 배틀이면 stageId로 어느 던전 몇 난이도인지 알아낸다 —
+    // 드랍표 선택과 dailyCounters 차감에 쓴다(07_DUNGEON_EXCHANGE.md §4).
+    const dungeonRef = STAGE_ID_TO_DUNGEON[battle.stageId];
+    const now = new Date();
+    const counterRef = dungeonRef ? db.doc(`users/${uid}/dailyCounters/${gameDateKey(now)}`) : null;
+
+    const [metaSnap, userSnap, counterSnap] = await Promise.all([
+      tx.get(db.doc(`stagesMeta/${battle.stageId}`)),
+      tx.get(userRef),
+      counterRef ? tx.get(counterRef) : Promise.resolve(undefined),
+    ]);
     const meta = metaSnap.data() as StageMeta;
 
     const failedAt = findFirstFailedValidation(battle, meta, req, Date.now());
@@ -94,11 +109,34 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
       );
     }
 
-    const clearedStages = (userSnap.data()?.progress?.clearedStages ?? {}) as Record<string, { bestClearSec: number }>;
-    const firstClear = req.outcome === 'ALLY_WIN' && !clearedStages[battle.stageId];
-    const rewards = req.outcome === 'ALLY_WIN' ? (firstClear ? meta.firstRewards : meta.repeatRewards) : [];
+    let rewards: Delta[] = [];
+    let firstClear = false;
 
-    if (req.outcome === 'ALLY_WIN') {
+    if (req.outcome === 'ALLY_WIN' && dungeonRef) {
+      const dungeon = DUNGEONS_BY_ID[dungeonRef.dungeonId]!;
+      const difficultyMeta = dungeon.difficulties.find((d) => d.level === dungeonRef.level)!;
+      const bonusDay = isBonusDay(gameDayWeekday(now), dungeon.bonusWeekdays);
+      rewards = rollDrops(difficultyMeta.drops, bonusDay, () => randomInt(1_000_000) / 1_000_000);
+
+      const clearedDungeons = (userSnap.data()?.progress?.clearedDungeons ?? {}) as Record<string, number>;
+      const prevLevel = clearedDungeons[dungeonRef.dungeonId] ?? 0;
+      tx.update(userRef, {
+        [`progress.clearedDungeons.${dungeonRef.dungeonId}`]: Math.max(prevLevel, dungeonRef.level),
+      });
+
+      const totalDungeonRuns = (counterSnap?.data()?.totalDungeonRuns as number) ?? 0;
+      const dungeonRuns = { ...(counterSnap?.data()?.dungeonRuns ?? {}) };
+      dungeonRuns[dungeonRef.dungeonId] = (dungeonRuns[dungeonRef.dungeonId] ?? 0) + 1;
+      tx.set(
+        counterRef!,
+        { totalDungeonRuns: totalDungeonRuns + 1, dungeonRuns, expireAt: nextGameDayResetMs(now) },
+        { merge: true },
+      );
+    } else if (req.outcome === 'ALLY_WIN') {
+      const clearedStages = (userSnap.data()?.progress?.clearedStages ?? {}) as Record<string, { bestClearSec: number }>;
+      firstClear = !clearedStages[battle.stageId];
+      rewards = firstClear ? meta.firstRewards : meta.repeatRewards;
+
       const clearSec = req.summary.endTick / TICKS_PER_SEC;
       const prevBest = clearedStages[battle.stageId]?.bestClearSec;
       tx.update(userRef, {
@@ -107,17 +145,16 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
           bestClearSec: prevBest === undefined ? clearSec : Math.min(prevBest, clearSec),
         },
       });
-      for (const r of rewards) {
-        tx.update(userRef, { [`currency.${r.item}`]: admin.firestore.FieldValue.increment(r.amount) });
-      }
     }
+
+    applyRewards(tx, uid, rewards);
 
     tx.update(battleRef, {
       state: 'submitted',
       result: { accepted: true, outcome: req.outcome, rewards, firstClear },
     });
 
-    const patch: AccountPatch = { currency: Object.fromEntries(rewards.map((r) => [r.item, r.amount])) };
+    const patch: AccountPatch = { currency: currencyPatchFrom(rewards) };
     return { result: { accepted: true, rewards, firstClear, patch } };
   });
 

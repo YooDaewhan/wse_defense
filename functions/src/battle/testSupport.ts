@@ -18,12 +18,22 @@ export const testStageMeta: StageMeta = {
   startingPrayerPower: 200,
   focusBaseRegen: 18,
   maxWeatherBonus: 1,
-  firstRewards: [{ item: 'gold', amount: 100 }],
-  repeatRewards: [{ item: 'gold', amount: 20 }],
+  firstRewards: [{ item: 'ITM_GOLD', amount: 100 }],
+  repeatRewards: [{ item: 'ITM_GOLD', amount: 20 }],
 };
 
 export async function seedStageMeta(): Promise<void> {
   await db.doc(`stagesMeta/${TEST_STAGE_ID}`).set(testStageMeta);
+}
+
+/** DUNGEON 모드 배틀도 STORY와 똑같이 stagesMeta에서 시간/기도력/처치 상한을
+ * 읽는다(V4~V9) — 드랍표만 dungeonData.ts(STAGE_ID_TO_DUNGEON)에서 온다.
+ * `STG_DGN_SUN_1`은 실제 dungeonData.ts의 매핑과 일치해야 한다. */
+export const TEST_DUNGEON_STAGE_ID = 'STG_DGN_SUN_1';
+export const TEST_DUNGEON_ID = 'DGN_SUN';
+
+export async function seedDungeonStageMeta(): Promise<void> {
+  await db.doc(`stagesMeta/${TEST_DUNGEON_STAGE_ID}`).set({ ...testStageMeta, firstRewards: [], repeatRewards: [] });
 }
 
 /** users/{uid}에 CHR_ACORN(슬롯0), CHR_DROPLET(슬롯1)을 보유+편성한 상태를 만든다.

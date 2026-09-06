@@ -2,6 +2,8 @@ import { createHash, randomInt } from 'crypto';
 import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
 import { db } from '../common/admin';
 import { requireAuth } from '../common/auth';
+import { DAILY_RUN_LIMIT } from '../dungeon/dungeonData';
+import { gameDateKey } from '../schedule/gameDay';
 import { FormationSnapshot, StageMeta, StartBattleReq, StartBattleRes } from './types';
 
 interface RawFormationSlot {
@@ -52,6 +54,15 @@ export async function startBattleHandler(request: CallableRequest<StartBattleReq
   const metaDoc = await db.doc(`stagesMeta/${stageId}`).get();
   if (!metaDoc.exists) throw new HttpsError('not-found', 'BATTLE_NOT_FOUND');
   const meta = metaDoc.data() as StageMeta;
+
+  // 06_BACKEND.md §4.3 "DUNGEON: dailyCounters 잔여 횟수(차감은 submit에서)".
+  if (mode === 'DUNGEON') {
+    const counterDoc = await db.doc(`users/${uid}/dailyCounters/${gameDateKey(new Date())}`).get();
+    const totalDungeonRuns = (counterDoc.data()?.totalDungeonRuns as number) ?? 0;
+    if (totalDungeonRuns >= DAILY_RUN_LIMIT) {
+      throw new HttpsError('resource-exhausted', 'DAILY_LIMIT_REACHED');
+    }
+  }
 
   const formationSnapshot = await loadFormationSnapshot(uid, presetIndex);
 
