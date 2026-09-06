@@ -204,6 +204,13 @@ class _EntryCard extends StatelessWidget {
                 ),
               Text(eq?.nameKey ?? entry.gain.id),
               Text('비용: ${entry.cost.map((c) => '${c.item}×${c.amount}').join(', ')}'),
+              // 07_DUNGEON_EXCHANGE.md §6.3: "+5 태그 추가는 UI에 반드시
+              // 사전 표시한다" -- 강화하기 전(구매 시점)부터 미리 안내.
+              if (eq?.grantTagId != null && eq!.tagBonusAtEnhance5)
+                Text(
+                  '+5 강화 시 ${eq.grantTagId} 태그 +1 추가 부여',
+                  key: ValueKey('exchange_enhance5_hint_${entry.id}'),
+                ),
               if (expanded && preview != null)
                 Text(
                   '이 장비를 장착하면 팀 ${preview.tagId} 레벨이 '

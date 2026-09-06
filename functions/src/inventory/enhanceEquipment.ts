@@ -1,8 +1,10 @@
 import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https';
-import { admin, db } from '../common/admin';
+import { db } from '../common/admin';
 import { requireAuth } from '../common/auth';
+import { applyReward } from '../common/rewards';
 import { withIdempotency } from '../common/idempotency';
 import { AccountPatch, BaseRequest } from '../common/types';
+import { EQUIPMENT_BY_ID } from '../exchange/equipmentData';
 
 export interface EnhanceEquipmentReq extends BaseRequest {
   equipmentInstanceId: string;
@@ -10,17 +12,28 @@ export interface EnhanceEquipmentReq extends BaseRequest {
 
 export interface EnhanceEquipmentRes {
   newEnhanceLevel: number;
-  goldSpent: number;
   patch: AccountPatch;
 }
 
-/** 장비 강화 비용 실제 밸런스 데이터는 아직 없다(태그 부여까지 포함한 진짜
- * 강화 시스템은 07_DUNGEON_EXCHANGE.md의 T-44 스코프). 여기서는 골드 차감
- * +레벨 증가가 한 트랜잭션으로 커밋되는 배관만 맞춘다 — 선형 placeholder. */
-function enhanceCost(currentLevel: number): number {
+export const MAX_ENHANCE_LEVEL = 10;
+
+/** 07_DUNGEON_EXCHANGE.md §6.3: "+1~+5: T1 조각×(3+level×2)+골드 /
+ * +6~+10: T2 조각×(2+level)+골드". `level`은 이번에 도달하는 목표
+ * 레벨(1-based) — 문서가 currentLevel/targetLevel 중 뭘 뜻하는지 명시하지
+ * 않아 이렇게 해석했다. 골드 수치 자체는 문서에 없어 T-39 placeholder를
+ * 그대로 이어간다(주석 명시).
+ */
+function shardCostFor(currentLevel: number): { tier: 'T1' | 'T2'; amount: number } {
+  const target = currentLevel + 1;
+  return target <= 5 ? { tier: 'T1', amount: 3 + target * 2 } : { tier: 'T2', amount: 2 + target };
+}
+
+function goldCostFor(currentLevel: number): number {
   return 100 * (currentLevel + 1);
 }
 
+/** 09_MILESTONES.md T-44: "+10까지 강화, 실패 없음". 자원이 충분하면 항상
+ * 성공한다 — 실패 확률 롤 자체가 없다(기획서 유지). */
 export async function enhanceEquipmentHandler(request: CallableRequest<EnhanceEquipmentReq>): Promise<EnhanceEquipmentRes> {
   const uid = requireAuth(request);
   const { equipmentInstanceId } = request.data;
@@ -32,16 +45,31 @@ export async function enhanceEquipmentHandler(request: CallableRequest<EnhanceEq
     if (!equipmentSnap.exists) throw new HttpsError('failed-precondition', 'NOT_OWNED');
 
     const currentLevel = (equipmentSnap.data()?.enhanceLevel as number) ?? 0;
+    if (currentLevel >= MAX_ENHANCE_LEVEL) throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
+
+    const equipmentCatalogId = equipmentSnap.data()?.equipmentId as string;
+    const meta = EQUIPMENT_BY_ID[equipmentCatalogId];
+    if (!meta) throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
+
+    const shardCost = shardCostFor(currentLevel);
+    const shardItemId = `ITM_SHARD_${meta.shardFamily}_${shardCost.tier}`;
+    const shardRef = db.doc(`users/${uid}/items/${shardItemId}`);
+    const shardSnap = await tx.get(shardRef);
+
     const gold = (userSnap.data()?.currency?.gold as number) ?? 0;
-    const cost = enhanceCost(currentLevel);
-    if (gold < cost) throw new HttpsError('failed-precondition', 'NOT_ENOUGH_CURRENCY');
+    const goldCost = goldCostFor(currentLevel);
+    const shardHeld = (shardSnap.data()?.amount as number) ?? 0;
+    if (gold < goldCost || shardHeld < shardCost.amount) {
+      throw new HttpsError('failed-precondition', 'NOT_ENOUGH_CURRENCY');
+    }
 
     const newEnhanceLevel = currentLevel + 1;
     tx.update(equipmentRef, { enhanceLevel: newEnhanceLevel });
-    tx.update(userRef, { 'currency.gold': admin.firestore.FieldValue.increment(-cost) });
+    applyReward(tx, uid, { item: 'ITM_GOLD', amount: -goldCost });
+    applyReward(tx, uid, { item: shardItemId, amount: -shardCost.amount });
 
     return {
-      result: { newEnhanceLevel, goldSpent: cost, patch: { currency: { gold: gold - cost } } },
+      result: { newEnhanceLevel, patch: { currency: { gold: gold - goldCost } } },
     };
   });
 }

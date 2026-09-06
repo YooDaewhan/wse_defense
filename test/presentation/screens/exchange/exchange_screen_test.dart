@@ -85,6 +85,27 @@ void main() {
     expect(find.text('TAG_RACE_ANIMAL'), findsOneWidget);
   });
 
+  testWidgets('T-44: shows the +5 tag-bonus hint in advance, before any enhancement happens', (tester) async {
+    _useTallSurface(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ExchangeScreen(
+          config: _config,
+          equipmentById: const {'EQP_ANIMAL_MASK': _mask},
+          heldItems: const {},
+          formationTagLevels: const {},
+          registry: registry,
+          onExchange: (_) {},
+          onUpgrade: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('+5 강화 시 TAG_RACE_ANIMAL 태그 +1 추가 부여'), findsOneWidget);
+  });
+
   testWidgets('tapping the card reveals the "team tag 4 -> 5" preview', (tester) async {
     _useTallSurface(tester);
 

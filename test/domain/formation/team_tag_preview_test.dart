@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wse_defense/battle/defs/unit_def.dart';
 import 'package:wse_defense/data/tag/tag_data_loader.dart';
+import 'package:wse_defense/domain/exchange/equipment_def.dart';
+import 'package:wse_defense/domain/exchange/equipment_tag_grant.dart';
 import 'package:wse_defense/domain/formation/team_tag_preview.dart';
 
 const _animal1 = UnitDef(
@@ -146,6 +148,32 @@ void main() {
         ],
       );
       expect(withGear.formationLevels['TAG_RACE_PLANT'], 2); // 1(고유) + 1(장비) -- 재계산은 순수 함수라 "즉시" 반영
+    },
+  );
+
+  test(
+    'T-44: 장착 시 팀 태그 프리뷰 즉시 갱신 — 장비를 +5로 강화하면 다음 계산에 바로 보너스 태그가 반영된다',
+    () async {
+      final bundle = await tagBundle;
+      const mask = EquipmentDef(
+        id: 'EQP_ANIMAL_MASK',
+        nameKey: 'eqp.animal_mask',
+        originDungeonId: 'DGN_SUN',
+        grantTagId: 'TAG_RACE_ANIMAL',
+        grantTagBaseLevel: 1,
+        tagBonusAtEnhance5: true,
+      );
+
+      TeamTagPreview previewAt(int enhanceLevel) => computeTeamTagPreview(
+        [_animal1],
+        bundle.registry,
+        bundle.effects,
+        bundle.relations,
+        equipmentGrantsPerSlot: [effectiveGrantTags(mask, enhanceLevel)],
+      );
+
+      expect(previewAt(4).formationLevels['TAG_RACE_ANIMAL'], 3); // 2(고유) + 1(장비, +5 미만)
+      expect(previewAt(5).formationLevels['TAG_RACE_ANIMAL'], 4); // 2(고유) + 2(장비, +5 도달 보너스)
     },
   );
 }
