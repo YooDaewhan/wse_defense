@@ -8,3 +8,4 @@ export * from './schedule/getServerTime';
 export * from './dungeon/sweepDungeon';
 export * from './exchange/exchangeItems';
 export * from './gacha/gachaPull';
+export * from './gacha/exchangePickup';
