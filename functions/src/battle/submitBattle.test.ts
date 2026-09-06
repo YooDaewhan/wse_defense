@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { db } from '../common/admin';
+import { gameDateKey } from '../schedule/gameDay';
 import { TICKS_PER_SEC } from './constants';
 import { encodeInputLog } from './inputLog';
 import { PUZZLE_STAGE_ID } from './puzzleData';
@@ -381,4 +382,26 @@ test('T-53: a second PUZZLE clear the same week grants no further reward', async
   const res2 = await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle2)));
 
   expect(res2.rewards).toEqual([]);
+});
+
+/** 09_MILESTONES.md T-54 MSN_BATTLE -- 어느 모드든 승리만 하면 대체
+ * 조건을 만족한다(TRIAL만 예외, 위 "진행도 영향 없음" 테스트로 확인). */
+test('T-54: a STORY win counts as the battle-mission trigger', async () => {
+  const uid = 'submit-user-15';
+  const battle = await startFreshBattle(uid);
+
+  await submitBattleHandler(fakeAuthedRequest(uid, buildHappyPathSubmission(battle)));
+
+  const counter = await db.doc(`users/${uid}/dailyCounters/${gameDateKey(new Date())}`).get();
+  expect(counter.data()?.missionProgress.MSN_BATTLE).toBe(1);
+});
+
+test('T-54: a TRIAL win does not count toward the battle mission', async () => {
+  const uid = 'submit-user-16';
+  const battle = await startFreshTrialBattle(uid);
+
+  await submitBattleHandler(fakeAuthedRequest(uid, buildTrialHappyPathSubmission(battle)));
+
+  const counter = await db.doc(`users/${uid}/dailyCounters/${gameDateKey(new Date())}`).get();
+  expect(counter.data()?.missionProgress?.MSN_BATTLE).toBeUndefined();
 });

@@ -2,6 +2,7 @@ import { CallableRequest, HttpsError, onCall } from 'firebase-functions/v2/https
 import { admin, db } from '../common/admin';
 import { requireAuth } from '../common/auth';
 import { withIdempotency } from '../common/idempotency';
+import { bumpMissionProgress } from '../mission/missionProgress';
 import { AccountPatch, BaseRequest } from '../common/types';
 import { BOND_GOLD_COST, BOND_MAX_LEVEL, CAMP_GOLD_COST, costForLevelUp, FOCUS_GOLD_COST } from './growthConfig';
 
@@ -47,8 +48,11 @@ function costFormulaOf(target: GrowthTarget) {
 export async function levelUpHandler(request: CallableRequest<LevelUpReq>): Promise<LevelUpRes> {
   const uid = requireAuth(request);
   const { target } = request.data;
+  // withIdempotency의 재시도(멱등키 재사용) 호출은 아래 콜백을 다시 안
+  // 부르니 이 값도 그대로 false로 남아 미션 진행도가 두 번 안 올라간다.
+  let leveledUpThisCall = false;
 
-  return withIdempotency<LevelUpRes>(uid, request.data.idempotencyKey, 'levelUp', async (tx) => {
+  const res = await withIdempotency<LevelUpRes>(uid, request.data.idempotencyKey, 'levelUp', async (tx) => {
     const userRef = db.doc(`users/${uid}`);
     const userSnap = await tx.get(userRef);
     const growth = userSnap.data()?.growth ?? {};
@@ -66,6 +70,7 @@ export async function levelUpHandler(request: CallableRequest<LevelUpReq>): Prom
       [GROWTH_DOC_FIELD[target]]: newLevel,
       'currency.gold': admin.firestore.FieldValue.increment(-cost),
     });
+    leveledUpThisCall = true;
 
     return {
       result: {
@@ -75,6 +80,9 @@ export async function levelUpHandler(request: CallableRequest<LevelUpReq>): Prom
       },
     };
   });
+
+  if (leveledUpThisCall) await bumpMissionProgress(uid, 'LEVEL_UP'); // T-54 MSN_GROWTH 대체 조건
+  return res;
 }
 
 export const levelUp = onCall(levelUpHandler);

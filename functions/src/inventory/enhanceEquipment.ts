@@ -3,6 +3,7 @@ import { db } from '../common/admin';
 import { requireAuth } from '../common/auth';
 import { applyReward } from '../common/rewards';
 import { withIdempotency } from '../common/idempotency';
+import { bumpMissionProgress } from '../mission/missionProgress';
 import { AccountPatch, BaseRequest } from '../common/types';
 import { EQUIPMENT_BY_ID } from '../exchange/equipmentData';
 
@@ -37,8 +38,11 @@ function goldCostFor(currentLevel: number): number {
 export async function enhanceEquipmentHandler(request: CallableRequest<EnhanceEquipmentReq>): Promise<EnhanceEquipmentRes> {
   const uid = requireAuth(request);
   const { equipmentInstanceId } = request.data;
+  // withIdempotency의 재시도(멱등키 재사용) 호출은 아래 콜백을 다시 안
+  // 부르니 이 값도 그대로 false로 남아 미션 진행도가 두 번 안 올라간다.
+  let enhancedThisCall = false;
 
-  return withIdempotency<EnhanceEquipmentRes>(uid, request.data.idempotencyKey, 'enhanceEquipment', async (tx) => {
+  const res = await withIdempotency<EnhanceEquipmentRes>(uid, request.data.idempotencyKey, 'enhanceEquipment', async (tx) => {
     const equipmentRef = db.doc(`users/${uid}/equipments/${equipmentInstanceId}`);
     const userRef = db.doc(`users/${uid}`);
     const [equipmentSnap, userSnap] = await Promise.all([tx.get(equipmentRef), tx.get(userRef)]);
@@ -67,11 +71,15 @@ export async function enhanceEquipmentHandler(request: CallableRequest<EnhanceEq
     tx.update(equipmentRef, { enhanceLevel: newEnhanceLevel });
     applyReward(tx, uid, { item: 'ITM_GOLD', amount: -goldCost });
     applyReward(tx, uid, { item: shardItemId, amount: -shardCost.amount });
+    enhancedThisCall = true;
 
     return {
       result: { newEnhanceLevel, patch: { currency: { gold: gold - goldCost } } },
     };
   });
+
+  if (enhancedThisCall) await bumpMissionProgress(uid, 'ENHANCE_EQUIPMENT'); // T-54 MSN_GROWTH 대체 조건
+  return res;
 }
 
 export const enhanceEquipment = onCall(enhanceEquipmentHandler);

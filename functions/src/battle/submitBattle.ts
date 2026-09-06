@@ -12,6 +12,7 @@ import { aggregateRolls, rollDrops } from '../dungeon/dropRoll';
 import { DUNGEONS_BY_ID, STAGE_ID_TO_DUNGEON } from '../dungeon/dungeonData';
 import { gameDateKey, gameDayWeekday, gameWeekKey, isBonusDay, nextGameDayResetMs } from '../schedule/gameDay';
 import { decodeInputLog } from './inputLog';
+import { bumpMissionProgress } from '../mission/missionProgress';
 import { PUZZLE_REWARDS } from './puzzleData';
 import { BattleDoc, StageMeta, SubmitBattleReq, SubmitBattleRes } from './types';
 import {
@@ -68,6 +69,9 @@ function findFirstFailedValidation(battle: BattleDoc, meta: StageMeta, req: Subm
 export async function submitBattleHandler(request: CallableRequest<SubmitBattleReq>): Promise<SubmitBattleRes> {
   const uid = requireAuth(request);
   const req = request.data;
+  // withIdempotency의 재시도(멱등키 재사용) 호출은 work()를 다시 안 부르니
+  // 이 값도 그대로 undefined로 남아 미션 진행도가 두 번 안 올라간다.
+  let battleModeForMission: string | undefined;
 
   const internal = await withIdempotency<InternalResult>(uid, req.idempotencyKey, 'submitBattle', async (tx) => {
     const battleRef = db.doc(`users/${uid}/battles/${req.battleId}`);
@@ -80,6 +84,7 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
       return { result: { accepted: false, rejectedAt: 'V0', rewards: [], firstClear: false, patch: {} } };
     }
     const battle = battleSnap.data() as BattleDoc;
+    battleModeForMission = battle.mode;
     // DUNGEON 모드 배틀이면 stageId로 어느 던전 몇 난이도인지 알아낸다 —
     // 드랍표 선택과 dailyCounters 차감에 쓴다(07_DUNGEON_EXCHANGE.md §4).
     const dungeonRef = STAGE_ID_TO_DUNGEON[battle.stageId];
@@ -184,6 +189,13 @@ export async function submitBattleHandler(request: CallableRequest<SubmitBattleR
   if (!internal.accepted) {
     throw new HttpsError('failed-precondition', 'VALIDATION_FAILED');
   }
+
+  // T-54 MSN_BATTLE 미션의 "대체 조건" -- 어느 스테이지·모드든 승리만
+  // 하면 되고, 체험전(진행도 영향 없음)만 제외한다.
+  if (req.outcome === 'ALLY_WIN' && battleModeForMission && battleModeForMission !== 'TRIAL') {
+    await bumpMissionProgress(uid, 'BATTLE_WIN');
+  }
+
   return { accepted: true, rewards: internal.rewards, firstClear: internal.firstClear, patch: internal.patch };
 }
 

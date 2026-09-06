@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { db } from '../common/admin';
 import { fakeAuthedRequest } from '../battle/testSupport';
+import { gameDateKey } from '../schedule/gameDay';
 import { levelUpHandler } from './levelUp';
 import { BOND_MAX_LEVEL, costForLevelUp, FOCUS_GOLD_COST } from './growthConfig';
 
@@ -57,4 +58,16 @@ test('idempotent: retrying with the same idempotencyKey does not deduct gold twi
   const doc = await db.doc(`users/${uid}`).get();
   expect(doc.data()?.currency.gold).toBe(50); // 두 번이 아니라 한 번만 차감
   expect(doc.data()?.growth.focusLevel).toBe(2);
+});
+
+/** 09_MILESTONES.md T-54 MSN_GROWTH의 대체 조건 중 하나. */
+test('T-54: counts as a growth-mission trigger', async () => {
+  const uid = 'levelup-user-5';
+  const cost = costForLevelUp(FOCUS_GOLD_COST, 1);
+  await seedAccount(uid, cost + 50);
+
+  await levelUpHandler(fakeAuthedRequest(uid, { idempotencyKey: randomUUID(), appVersion: '1.0.0', dataVersion: '1', target: 'FOCUS' }));
+
+  const counter = await db.doc(`users/${uid}/dailyCounters/${gameDateKey(new Date())}`).get();
+  expect(counter.data()?.missionProgress.MSN_GROWTH).toBe(1);
 });

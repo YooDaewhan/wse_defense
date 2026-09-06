@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { db } from '../common/admin';
 import { fakeAuthedRequest } from '../battle/testSupport';
+import { gameDateKey } from '../schedule/gameDay';
 import { equipItemHandler } from './equipItem';
 import { enhanceEquipmentHandler, MAX_ENHANCE_LEVEL } from './enhanceEquipment';
 
@@ -135,4 +136,16 @@ test('T-44: transferring an enhanced item to a different character preserves its
   const equipment = await db.doc(`users/${uid}/equipments/EQ_1`).get();
   expect(equipment.data()?.enhanceLevel).toBe(1); // 이관해도 유지
   expect(equipment.data()?.equippedTo).toBe('CHR_DROPLET');
+});
+
+/** 09_MILESTONES.md T-54 MSN_GROWTH의 대체 조건 중 하나. */
+test('T-54: counts as a growth-mission trigger', async () => {
+  const uid = 'enhance-user-9';
+  await seedAccount(uid, 100, { ITM_SHARD_FIELD_T1: 5 });
+  await db.doc(`users/${uid}/equipments/EQ_1`).set({ equipmentId: 'EQP_ACORN_SHIELD', enhanceLevel: 0, equippedTo: null });
+
+  await enhanceEquipmentHandler(req(uid, 'EQ_1'));
+
+  const counter = await db.doc(`users/${uid}/dailyCounters/${gameDateKey(new Date())}`).get();
+  expect(counter.data()?.missionProgress.MSN_GROWTH).toBe(1);
 });

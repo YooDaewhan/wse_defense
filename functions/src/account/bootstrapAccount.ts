@@ -2,6 +2,7 @@ import { CallableRequest, onCall } from 'firebase-functions/v2/https';
 import { admin, db } from '../common/admin';
 import { requireAuth } from '../common/auth';
 import { STARTER_CHARACTER_IDS } from '../common/starterCharacters';
+import { bumpMissionProgress } from '../mission/missionProgress';
 
 export interface BootstrapAccountReq {
   appVersion: string;
@@ -19,14 +20,17 @@ function emptyFormationSlots() {
 }
 
 /** 06_BACKEND.md §6.1: users/{uid} 최초 생성 + 스타터 5종 + 편성 프리셋 3개.
- * 멱등: 이미 계정 문서가 있으면 그 상태를 그대로 반환하고 아무것도 쓰지 않는다. */
+ * 이미 계정 문서가 있으면 새로 만들지 않고 lastLoginAt만 갱신한다 --
+ * 이 호출을 세션 시작("접속") 신호로 삼아 T-54 MSN_LOGIN 미션 진행도를
+ * 올린다(07_DUNGEON_EXCHANGE.md §9). */
 export async function bootstrapAccountHandler(request: CallableRequest<BootstrapAccountReq>) {
   const uid = requireAuth(request);
   const userRef = db.doc(`users/${uid}`);
 
-  return db.runTransaction(async (tx) => {
+  const result = await db.runTransaction(async (tx) => {
     const existing = await tx.get(userRef);
     if (existing.exists) {
+      tx.update(userRef, { 'profile.lastLoginAt': admin.firestore.FieldValue.serverTimestamp() });
       return { ok: true, data: existing.data() };
     }
 
@@ -66,6 +70,9 @@ export async function bootstrapAccountHandler(request: CallableRequest<Bootstrap
 
     return { ok: true, data: account };
   });
+
+  await bumpMissionProgress(uid, 'LOGIN');
+  return result;
 }
 
 export const bootstrapAccount = onCall(bootstrapAccountHandler);

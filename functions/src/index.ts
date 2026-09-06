@@ -12,3 +12,5 @@ export * from './gacha/gachaPull';
 export * from './gacha/exchangePickup';
 export * from './purchase/verifyPurchase';
 export * from './purchase/retryUngrantedPurchases';
+export * from './mission/claimMission';
+export * from './mail/claimMail';
