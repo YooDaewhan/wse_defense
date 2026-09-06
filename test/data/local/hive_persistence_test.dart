@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:wse_defense/data/local/datapack_cache_repository.dart';
 import 'package:wse_defense/data/local/formation_repository.dart';
 import 'package:wse_defense/data/local/journal_repository.dart';
 import 'package:wse_defense/data/local/pending_submits_repository.dart';
@@ -110,5 +111,23 @@ void main() {
     expect(reopened.pending, [
       {'idempotencyKey': 'key-1', 'battleId': 'b1', 'outcome': 'ALLY_WIN'},
     ]);
+  });
+
+  test('T-40: a cached datapack version survives a simulated app restart, keeping only the last 2 versions', () async {
+    Hive.init(dir.path);
+    var box = await Hive.openBox(DatapackCacheRepository.boxName);
+    final repo = DatapackCacheRepository(box);
+    repo.save('1.0.0', {'characters.json': 'v1'});
+    repo.save('1.0.1', {'characters.json': 'v2'});
+    repo.save('1.0.2', {'characters.json': 'v3'});
+    await box.close();
+
+    Hive.init(dir.path);
+    box = await Hive.openBox(DatapackCacheRepository.boxName);
+    final reopened = DatapackCacheRepository(box);
+
+    expect(reopened.filesFor('1.0.0'), isNull); // 가장 오래된 건 밀려남
+    expect(reopened.filesFor('1.0.1'), {'characters.json': 'v2'});
+    expect(reopened.filesFor('1.0.2'), {'characters.json': 'v3'});
   });
 }
