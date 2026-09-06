@@ -17,6 +17,7 @@ import '../game/battle_result.dart';
 import '../presentation/screens/adventure/adventure_map_screen.dart';
 import '../presentation/screens/adventure/stage_brief_screen.dart';
 import '../presentation/screens/battle/battle_screen.dart';
+import '../presentation/screens/camp/camp_screen.dart';
 import '../presentation/screens/battle_result/battle_result_screen.dart';
 import '../presentation/screens/dungeon/dungeon_screen.dart';
 import '../presentation/screens/exchange/exchange_screen.dart';
@@ -67,7 +68,21 @@ GoRouter buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/camp',
-      builder: (context, state) => const PlaceholderScreen(title: '캠프'),
+      builder: (context, state) {
+        final scope = AppScopeProvider.of(context);
+        return CampScreen(
+          account: scope.account,
+          onAdventureTap: () => context.push('/adventure'),
+          onFormationTap: () => context.push('/formation'),
+          onSummonTap: () => context.push('/summon'),
+          onDungeonTap: () => context.push('/dungeon'),
+          onExchangeTap: () => context.push('/exchange'),
+          onInventoryTap: () => context.push('/inventory'),
+          onMailTap: () => context.push('/mail'),
+          onJournalTap: () => context.push('/journal'),
+          onSettingsTap: () => context.push('/settings'),
+        );
+      },
     ),
     GoRoute(
       path: '/adventure',
