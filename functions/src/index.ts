@@ -1,3 +1,8 @@
+import { setGlobalOptions } from 'firebase-functions/v2';
+
+// 06_BACKEND.md §5: 모든 Callable은 asia-northeast3(서울).
+setGlobalOptions({ region: 'asia-northeast3' });
+
 export * from './account/bootstrapAccount';
 export * from './battle/startBattle';
 export * from './battle/submitBattle';

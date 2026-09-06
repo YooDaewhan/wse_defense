@@ -1,16 +1,12 @@
 import 'package:go_router/go_router.dart';
 
+import '../application/app_scope.dart';
 import '../battle/defs/datapack.dart';
 import '../battle/defs/stage_def.dart';
-import '../battle/defs/unit_def.dart';
 import '../battle/tag/tag_registry.dart';
-import '../battle/world/battle_config.dart';
 import '../battle/world/battle_world.dart';
-import '../battle/world/canonical_systems.dart';
-import '../data/local/journal_repository.dart';
 import '../domain/dungeon/dungeon_def.dart';
 import '../domain/dungeon/dungeon_progress.dart';
-import '../domain/exchange/equipment_def.dart';
 import '../domain/exchange/exchange_def.dart';
 import '../domain/gacha/banner_def.dart';
 import '../domain/story/story_beat.dart';
@@ -29,6 +25,11 @@ import '../presentation/widgets/placeholder_screen.dart';
 
 /// 05_FRONTEND.md §2 라우트 표. 실제 화면이 아직 없는 곳은 전부
 /// `PlaceholderScreen`(T-28 완료조건: "모든 라우트 진입 가능, 빈 화면 허용").
+///
+/// 10_WIRING_PLAN.md T-56: 딥링크·직접 진입(= `state.extra`가 없음) 시의
+/// 폴백은 하드코딩된 더미 객체가 아니라 [AppScopeProvider]가 부팅 때 채운
+/// 실제 로더 결과에서 온다. 완전히 아무것도 못 만드는 경우(전투 중간
+/// 진입 등)만 최소 리터럴로 남긴다.
 GoRouter buildAppRouter() => GoRouter(
   initialLocation: '/',
   routes: [
@@ -36,11 +37,12 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: '/prologue',
       builder: (context, state) {
-        final extra = state.extra as ({List<StoryBeat> beats, JournalStore journalStore})?;
+        final scope = AppScopeProvider.of(context);
+        final extra = state.extra as ({List<StoryBeat> beats})?;
         return StoryPlayerScreen(
           sceneId: 'story.prologue',
-          beats: extra?.beats ?? const [LineBeat(textKey: 'story.prologue.l1')],
-          journalStore: extra?.journalStore ?? _NoopJournalStore(),
+          beats: extra?.beats ?? scope.prologueBeats ?? const [LineBeat(textKey: 'story.prologue.l1')],
+          journalStore: scope.journal,
           onFinished: () => context.go('/camp'),
         );
       },
@@ -56,12 +58,13 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: '/adventure',
       builder: (context, state) {
-        final extra = state.extra as ({List<StageDef> stages, Set<String> cleared, Datapack datapack})?;
-        final stages = extra?.stages ?? _demoChapterStages();
-        final datapack = extra?.datapack ?? const Datapack(characters: {}, enemies: {}, stages: {});
+        final scope = AppScopeProvider.of(context);
+        final datapack = scope.datapack ?? const Datapack(characters: {}, enemies: {}, stages: {});
+        final extra = state.extra as ({List<StageDef> stages, Set<String> cleared})?;
+        final stages = extra?.stages ?? (datapack.stages.values.toList()..sort((a, b) => a.index.compareTo(b.index)));
         return AdventureMapScreen(
           chapterStages: stages,
-          clearedStageIds: extra?.cleared ?? const {},
+          clearedStageIds: extra?.cleared ?? scope.account.clearedStageIds,
           onStageTap: (stage) => context.push('/adventure/${stage.id}/brief', extra: (stage: stage, datapack: datapack)),
         );
       },
@@ -69,11 +72,13 @@ GoRouter buildAppRouter() => GoRouter(
         GoRoute(
           path: ':stageId/brief',
           builder: (context, state) {
+            final scope = AppScopeProvider.of(context);
+            final datapack = scope.datapack ?? const Datapack(characters: {}, enemies: {}, stages: {});
             final extra = state.extra as ({StageDef stage, Datapack datapack})?;
-            return StageBriefScreen(
-              stage: extra?.stage ?? _demoChapterStages().first,
-              datapack: extra?.datapack ?? const Datapack(characters: {}, enemies: {}, stages: {}),
-            );
+            final stageId = state.pathParameters['stageId'];
+            final stage = extra?.stage ?? datapack.stages[stageId];
+            if (stage == null) return const PlaceholderScreen(title: '스테이지를 찾을 수 없음');
+            return StageBriefScreen(stage: stage, datapack: extra?.datapack ?? datapack);
           },
         ),
       ],
@@ -84,8 +89,14 @@ GoRouter buildAppRouter() => GoRouter(
     ),
     GoRoute(
       path: '/battle',
-      builder: (context, state) =>
-          BattleScreen(world: (state.extra as BattleWorld?) ?? _demoBattleWorld()),
+      builder: (context, state) {
+        final world = state.extra as BattleWorld?;
+        // 전투는 항상 출격 브리핑(startBattle)에서 만들어진 실제 BattleWorld를
+        // extra로 받는다 — 그게 없는 직접 진입은 보여줄 실제 전투가 없으므로
+        // 가짜로 하나 지어내지 않는다(T-56에서 _demoBattleWorld 삭제).
+        if (world == null) return const PlaceholderScreen(title: '전투');
+        return BattleScreen(world: world);
+      },
       routes: [
         GoRoute(
           path: 'result',
@@ -110,16 +121,16 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: '/dungeon',
       builder: (context, state) {
+        final scope = AppScopeProvider.of(context);
         final extra =
             state.extra
                 as ({
-                  DungeonConfig config,
                   DungeonProgressSnapshot progress,
                   int gameDayWeekday,
                   int remainingRuns,
                 })?;
         return DungeonScreen(
-          config: extra?.config ?? _demoDungeonConfig(),
+          config: scope.dungeonConfig ?? const DungeonConfig(dailyRunLimit: 6),
           progress: extra?.progress ?? const DungeonProgressSnapshot(),
           gameDayWeekday: extra?.gameDayWeekday ?? 1,
           remainingRuns: extra?.remainingRuns ?? 6,
@@ -130,21 +141,14 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: '/exchange',
       builder: (context, state) {
-        final extra =
-            state.extra
-                as ({
-                  ExchangeConfig config,
-                  Map<String, EquipmentDef> equipmentById,
-                  Map<String, int> heldItems,
-                  Map<String, int> formationTagLevels,
-                  TagRegistry registry,
-                })?;
+        final scope = AppScopeProvider.of(context);
+        final extra = state.extra as ({Map<String, int> heldItems, Map<String, int> formationTagLevels})?;
         return ExchangeScreen(
-          config: extra?.config ?? _demoExchangeConfig(),
-          equipmentById: extra?.equipmentById ?? const {},
+          config: scope.exchangeConfig ?? const ExchangeConfig(),
+          equipmentById: scope.equipmentById,
           heldItems: extra?.heldItems ?? const {},
           formationTagLevels: extra?.formationTagLevels ?? const {},
-          registry: extra?.registry ?? TagRegistry(const []),
+          registry: scope.tagBundle?.registry ?? TagRegistry(const []),
           onExchange: (entry) {},
           onUpgrade: (upgrade) {},
         );
@@ -157,11 +161,14 @@ GoRouter buildAppRouter() => GoRouter(
     GoRoute(
       path: '/summon',
       builder: (context, state) {
-        final extra = state.extra as ({BannerCatalog catalog, Map<String, int> heldItems, int exchangePoint})?;
+        final scope = AppScopeProvider.of(context);
+        final extra = state.extra as ({Map<String, int> heldItems})?;
         return SummonScreen(
-          catalog: extra?.catalog ?? _demoBannerCatalog(),
+          catalog:
+              scope.bannerCatalog ??
+              const BannerCatalog(banners: [], exchange: GachaExchangeRule(pointPerPull: 1, requiredPoints: 200)),
           heldItems: extra?.heldItems ?? const {},
-          exchangePoint: extra?.exchangePoint ?? 0,
+          exchangePoint: scope.account.exchangePoint,
           onPull: (banner, count) {},
           onTrialTap: (characterId) => context.push('/summon/trial/$characterId'),
         );
@@ -199,120 +206,8 @@ GoRouter buildAppRouter() => GoRouter(
   ],
 );
 
-/// `/battle`에 편성 없이(딥링크·직접 진입) 들어왔을 때의 자리 표시자.
-/// 실제 진입 경로(편성 화면 -> 출격)는 T-31/T-32가 `extra`로 진짜
-/// `BattleWorld`를 넘긴다.
-BattleWorld _demoBattleWorld() {
-  const dummyUnit = UnitDef(
-    id: 'CHR_DEMO',
-    base: UnitBaseStats(
-      maxHp: 500,
-      atk: 50,
-      attackPeriod: 60,
-      attackWindup: 12,
-      attackRecover: 48,
-      attackRange: 100,
-      moveSpeed: 60,
-    ),
-  );
-  return BattleWorld(
-    config: const BattleConfig(
-      stage: StageDef(
-        id: 'STG_DEMO',
-        index: 1,
-        fieldLength: 2400,
-        allyBaseX: 0,
-        enemyBaseX: 2400,
-        enemyBaseHp: 5000,
-        timeLimitSec: 300,
-      ),
-      allyBaseHp: 10000,
-      formation: [dummyUnit],
-    ),
-    rngSeed: 1,
-    datapack: const Datapack(characters: {}, enemies: {}, stages: {}),
-    systems: canonicalBattleSystems(),
-  )..phase = BattlePhase.running;
-}
-
-/// `/adventure`에 편성 없이(딥링크·직접 진입) 들어왔을 때의 자리 표시자.
-/// 실제 진입 경로(캠프 -> 모험 지도)는 로딩된 실제 챕터 데이터를 `extra`로
-/// 넘긴다.
-List<StageDef> _demoChapterStages() => const [
-  StageDef(
-    id: 'STG_DEMO_1',
-    index: 1,
-    fieldLength: 2400,
-    allyBaseX: 0,
-    enemyBaseX: 2400,
-    enemyBaseHp: 4500,
-    timeLimitSec: 300,
-  ),
-];
-
-/// `/dungeon`에 실제 데이터 없이(딥링크·직접 진입) 들어왔을 때의 자리
-/// 표시자. 실제 진입 경로는 `assets/data/v1/dungeons.json`을 로딩해 넘긴다.
-DungeonConfig _demoDungeonConfig() => const DungeonConfig(
-  dailyRunLimit: 6,
-  dungeons: [
-    DungeonDef(
-      id: 'DGN_DEMO',
-      nameKey: 'dgn.demo',
-      themeKey: 'demo',
-      shardFamily: 'DEMO',
-      difficulties: [DungeonDifficultyDef(level: 1, stageId: 'STG_DGN_DEMO_1')],
-    ),
-  ],
-);
-
-/// `/exchange`에 실제 데이터 없이(딥링크·직접 진입) 들어왔을 때의 자리
-/// 표시자. 실제 진입 경로는 `assets/data/v1/exchange.json`/`equipments.json`을
-/// 로딩해 넘긴다.
-ExchangeConfig _demoExchangeConfig() => const ExchangeConfig(
-  shops: [
-    ShopDef(
-      id: 'SHOP_DUNGEON_DEMO',
-      nameKey: 'shop.dungeon.demo',
-      entries: [
-        ExchangeEntryDef(
-          id: 'EX_DEMO',
-          cost: [CostEntry(item: 'ITM_SHARD_DEMO_T3', amount: 10)],
-          gain: GainDef(type: 'EQUIPMENT', id: 'EQP_DEMO'),
-        ),
-      ],
-    ),
-  ],
-);
-
-/// `/summon`에 실제 데이터 없이(딥링크·직접 진입) 들어왔을 때의 자리
-/// 표시자. 실제 진입 경로는 `assets/data/v1/banners.json`을 로딩해 넘긴다.
-BannerCatalog _demoBannerCatalog() => const BannerCatalog(
-  banners: [
-    BannerDef(
-      id: 'BNR_DEMO',
-      kind: 'STANDARD',
-      nameKey: 'bnr.demo',
-      cost: BannerCost(
-        single: CostEntry(item: 'ITM_RECRUIT_TICKET', amount: 1),
-        ten: CostEntry(item: 'ITM_RECRUIT_TICKET', amount: 10),
-      ),
-      rates: [RateEntry(rarity: 1, totalPct: 100000, pool: ['CHR_DEMO'])],
-      duplicateConversion: DuplicateConversion(rarity3: 10, rarity2: 5, rarity1: 1, item: 'ITM_COLLECT_FRAGMENT'),
-    ),
-  ],
-  exchange: GachaExchangeRule(pointPerPull: 1, requiredPoints: 200),
-);
-
-/// `/prologue`에 실제 저장소 없이(딥링크·직접 진입) 들어왔을 때의 자리
-/// 표시자 — 아무 것도 기록하지 않는다. 정상 진입 경로(부트스트랩 -> 캠프
-/// 최초 진입)는 실제 `JournalRepository`를 `extra`로 넘긴다.
-class _NoopJournalStore implements JournalStore {
-  @override
-  Set<String> get unlockedSceneIds => const {};
-  @override
-  void markUnlocked(String sceneId) {}
-}
-
+/// `/battle/result`에 결과 없이(딥링크·직접 진입) 들어왔을 때의 자리
+/// 표시자 — 빈 결과 요약(모든 값 0/null)을 그대로 보여준다.
 BattleResultSummary _demoBattleResult() => const BattleResultSummary(
   outcome: null,
   frontlineCollapseTick: null,

@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wse_defense/app/router.dart';
 import 'package:wse_defense/main.dart';
 
+import '../support/test_app_scope.dart';
+
 /// 09_MILESTONES.md T-28 완료조건: "모든 라우트 진입 가능(빈 화면 허용)".
 const _routes = [
   '/',
@@ -31,7 +33,7 @@ void main() {
   for (final route in _routes) {
     testWidgets('route $route is reachable without throwing', (tester) async {
       final router = buildAppRouter();
-      await tester.pumpWidget(WseDefenseApp(router: router));
+      await tester.pumpWidget(WseDefenseApp(router: router, appScope: testAppScope()));
       await tester.pump();
 
       router.go(route);

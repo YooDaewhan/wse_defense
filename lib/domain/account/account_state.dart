@@ -9,6 +9,8 @@ class AccountState {
     this.bondLevel = 1,
     this.focusLevel = 1,
     this.campLevel = 1,
+    this.clearedStageIds = const {},
+    this.exchangePoint = 0,
   });
 
   final int gold;
@@ -16,6 +18,8 @@ class AccountState {
   final int bondLevel; // 동행 레벨
   final int focusLevel; // 소녀의 집중력
   final int campLevel; // 캠프 방어(모닥불 HP)
+  final Set<String> clearedStageIds;
+  final int exchangePoint; // 소환 교환 포인트(배너 간 공유·이월)
 
   AccountState copyWith({
     int? gold,
@@ -23,11 +27,15 @@ class AccountState {
     int? bondLevel,
     int? focusLevel,
     int? campLevel,
+    Set<String>? clearedStageIds,
+    int? exchangePoint,
   }) => AccountState(
     gold: gold ?? this.gold,
     ownedCharacterIds: ownedCharacterIds ?? this.ownedCharacterIds,
     bondLevel: bondLevel ?? this.bondLevel,
     focusLevel: focusLevel ?? this.focusLevel,
     campLevel: campLevel ?? this.campLevel,
+    clearedStageIds: clearedStageIds ?? this.clearedStageIds,
+    exchangePoint: exchangePoint ?? this.exchangePoint,
   );
 }
